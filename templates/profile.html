@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Profile | Skiné{% endblock %}
+
+
+{% block content %}
+
+
+<section class="profile-section">
+
+
+    <div class="container">
+
+
+        <!-- Heading -->
+
+        <div class="text-center mb-5">
+
+
+            <span class="hero-tag">
+
+                User Profile
+
+            </span>
+
+
+            <h1 class="profile-title">
+
+                My Skin Profile
+
+            </h1>
+
+
+            <p class="profile-text">
+
+                Manage your personal information and track your skin health journey.
+
+            </p>
+
+
+        </div>
+
+
+
+        <div class="row g-5 align-items-center">
+
+
+            <!-- Profile Card -->
+
+
+            <div class="col-lg-5">
+
+
+                <div class="profile-card text-center">
+
+
+                    <div class="profile-image">
+
+
+                        <i class="fa-solid fa-user"></i>
+
+
+                    </div>
+
+
+                    <h2>
+
+                        {{ user.name }}
+
+                    </h2>
+
+
+                    <p>
+
+                        {{ user.email }}
+
+                    </p>
+                                        
+                    <hr>
+
+
+                    <div class="profile-info">
+
+
+                        <div class="profile-detail">
+
+                            <span>
+                                Skin Type
+                            </span>
+
+                            <strong>
+                                {{ user.skin_type }}
+                            </strong>
+
+                        </div>
+
+
+
+                        <div class="profile-detail">
+
+                            <span>
+                                Skin Health Score
+                            </span>
+
+                            <strong>
+                                {{ user.score }}
+                            </strong>
+
+                        </div>
+
+
+
+                        <div class="profile-detail">
+
+                            <span>
+                                Last Analysis
+                            </span>
+
+                            <strong>
+                                {{ user.last_scan }}
+                            </strong>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <a href="{{ url_for('scanner') }}" 
+                       class="hero-btn mt-4">
+
+                        <i class="fa-solid fa-camera"></i>
+
+                        New Skin Scan
+
+                    </a>
+
+
+                </div>
+
+
+            </div>
+                        <!-- Analysis Summary -->
+
+
+            <div class="col-lg-7">
+
+
+                <div class="profile-card">
+
+
+                    <h3 class="mb-4">
+
+                        Latest Skin Analysis
+
+                    </h3>
+
+
+
+                    <div class="analysis-row">
+
+                        <span>
+                            Oiliness
+                        </span>
+
+                        <strong>
+                            High
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="analysis-row">
+
+                        <span>
+                            Dryness
+                        </span>
+
+                        <strong>
+                            Low
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="analysis-row">
+
+                        <span>
+                            Texture
+                        </span>
+
+                        <strong>
+                            Smooth
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="analysis-row">
+
+                        <span>
+                            Redness
+                        </span>
+
+                        <strong>
+                            Low
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="analysis-row">
+
+                        <span>
+                            Visible Blemishes
+                        </span>
+
+                        <strong>
+                            Mild
+                        </strong>
+
+                    </div>
+
+
+
+                    <hr>
+
+
+                    <h3 class="mb-3">
+
+                        Skincare Recommendations
+
+                    </h3>
+
+
+                    <ul class="profile-tips">
+
+
+                        <li>
+                            <i class="fa-solid fa-circle-check"></i>
+                            Use gentle face cleanser
+                        </li>
+
+
+                        <li>
+                            <i class="fa-solid fa-circle-check"></i>
+                            Apply moisturizer daily
+                        </li>
+
+
+                        <li>
+                            <i class="fa-solid fa-circle-check"></i>
+                            Use SPF 50 sunscreen
+                        </li>
+
+
+                        <li>
+                            <i class="fa-solid fa-circle-check"></i>
+                            Maintain hydration
+                        </li>
+
+
+                    </ul>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</section>
+
+
+{% endblock %}

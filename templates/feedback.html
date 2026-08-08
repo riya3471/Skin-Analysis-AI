@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback | Skiné{% endblock %}
+
+
+{% block content %}
+
+
+<section class="feedback-section">
+
+
+    <div class="container">
+
+
+        <!-- Heading -->
+
+        <div class="text-center mb-5">
+
+
+            <span class="hero-tag">
+
+                Feedback
+
+            </span>
+
+
+            <h1 class="feedback-title">
+
+                Share Your Experience
+
+            </h1>
+
+
+            <p class="feedback-text">
+
+                Help us improve your AI skin analysis experience with your valuable feedback.
+
+            </p>
+
+
+        </div>
+
+
+
+        <div class="row g-5">
+
+
+            <!-- Feedback Form -->
+
+
+            <div class="col-lg-6">
+
+
+                <div class="feedback-card">
+
+
+                    <h3>
+
+                        Rate Your Experience
+
+                    </h3>
+
+
+
+                    <div class="rating-stars">
+
+
+                        <i class="fa-solid fa-star"></i>
+
+                        <i class="fa-solid fa-star"></i>
+
+                        <i class="fa-solid fa-star"></i>
+
+                        <i class="fa-solid fa-star"></i>
+
+                        <i class="fa-solid fa-star"></i>
+
+
+                    </div>
+
+
+
+                    <textarea 
+                    class="feedback-input"
+                    placeholder="Write your feedback here...">
+                    </textarea>
+
+
+
+                    <button class="hero-btn">
+
+
+                        <i class="fa-solid fa-paper-plane"></i>
+
+                        Submit Feedback
+
+
+                    </button>
+
+
+                </div>
+
+
+            </div>
+            
+            <!-- Previous Feedback -->
+
+
+            <div class="col-lg-6">
+
+
+                <div class="feedback-card">
+
+
+                    <h3 class="mb-4">
+
+                        User Reviews
+
+                    </h3>
+
+
+
+                    {% for item in feedbacks %}
+
+
+                    <div class="review-card">
+
+
+                        <div class="review-header">
+
+
+                            <h5>
+
+                                {{ item.name }}
+
+                            </h5>
+
+
+                            <span>
+
+                                {{ item.rating }}
+
+                            </span>
+
+
+                        </div>
+
+
+
+                        <p>
+
+                            {{ item.message }}
+
+                        </p>
+
+
+                    </div>
+
+
+                    {% endfor %}
+
+
+
+                </div>
+
+
+            </div>
+
+
+
+        </div>
+
+
+    </div>
+
+
+</section>
+
+
+{% endblock %}

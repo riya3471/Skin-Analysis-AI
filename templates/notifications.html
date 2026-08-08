@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | Skiné{% endblock %}
+
+
+{% block content %}
+
+
+<section class="notification-section">
+
+
+    <div class="container">
+
+
+        <!-- Heading -->
+
+        <div class="text-center mb-5">
+
+
+            <span class="hero-tag">
+
+                Notifications
+
+            </span>
+
+
+            <h1 class="notification-title">
+
+                Your Skin Updates
+
+            </h1>
+
+
+            <p class="notification-text">
+
+                Stay updated with your latest skin analysis and skincare reminders.
+
+            </p>
+
+
+        </div>
+
+
+
+        <div class="row g-4">
+
+
+            {% for item in notifications %}
+
+
+            <div class="col-lg-4 col-md-6">
+
+
+                <div class="notification-card">
+
+
+                    <div class="notification-icon">
+
+                        <i class="{{ item.icon }}"></i>
+
+                    </div>
+
+
+                    <h3>
+
+                        {{ item.title }}
+
+                    </h3>
+
+
+                    <p>
+
+                        {{ item.message }}
+
+                    </p>
+
+
+                    <span class="notification-time">
+
+                        {{ item.time }}
+
+                    </span>
+
+
+                </div>
+
+
+            </div>
+
+
+            {% endfor %}
+
+
+        </div>
+        
+        <div class="text-center mt-5">
+
+
+            <a href="{{ url_for('scanner') }}" 
+               class="hero-btn">
+
+
+                <i class="fa-solid fa-camera"></i>
+
+
+                Start New Analysis
+
+
+            </a>
+
+
+        </div>
+
+
+    </div>
+
+
+</section>
+
+
+{% endblock %}

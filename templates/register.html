@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Register | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="register-section">
+
+    <div class="container">
+
+        <div class="row justify-content-center">
+
+            <div class="col-lg-5 col-md-8">
+
+                <div class="register-card">
+
+                    <div class="text-center mb-4">
+
+                        <span class="hero-tag">
+
+                            Create Account
+
+                        </span>
+
+                        <h1 class="register-title">
+
+                            Join Skiné
+
+                        </h1>
+
+                        <p class="register-text">
+
+                            Create your account and start your AI skin journey.
+
+                        </p>
+
+                    </div>
+
+                    <form>
+                                                <div class="mb-4">
+
+                            <label class="form-label">
+
+                                Full Name
+
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control custom-input"
+                                placeholder="Enter your full name"
+                                required>
+
+                        </div>
+
+
+                        <div class="mb-4">
+
+                            <label class="form-label">
+
+                                Email Address
+
+                            </label>
+
+                            <input
+                                type="email"
+                                class="form-control custom-input"
+                                placeholder="Enter your email"
+                                required>
+
+                        </div>
+
+
+                        <div class="mb-4">
+
+                            <label class="form-label">
+
+                                Password
+
+                            </label>
+
+                            <input
+                                type="password"
+                                class="form-control custom-input"
+                                placeholder="Create password"
+                                required>
+
+                        </div>
+
+
+                        <div class="mb-4">
+
+                            <label class="form-label">
+
+                                Confirm Password
+
+                            </label>
+
+                            <input
+                                type="password"
+                                class="form-control custom-input"
+                                placeholder="Confirm password"
+                                required>
+
+                        </div>
+
+
+                        <button type="submit" class="hero-btn w-100 justify-content-center">
+
+                            <i class="fa-solid fa-user-plus"></i>
+
+                            Create Account
+
+                        </button>
+                                                <div class="text-center mt-4">
+
+                            <p class="mb-0">
+
+                                Already have an account?
+
+                                <a href="{{ url_for('login') }}" class="register-link">
+
+                                    Login
+
+                                </a>
+
+                            </p>
+
+                        </div>
+
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+{% endblock %}

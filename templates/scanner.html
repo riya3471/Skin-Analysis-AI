@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}AI Scanner | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="scanner-page">
+
+    <div class="container">
+
+        <!-- Heading -->
+
+        <div class="text-center mb-5">
+
+            <span class="hero-tag">
+                AI Skin Analysis
+            </span>
+
+            <h1 class="scanner-title">
+                Scan Your Skin
+            </h1>
+
+            <p class="scanner-text">
+                Allow camera access and let our Computer Vision system analyze your skin in real time.
+            </p>
+
+        </div>
+
+        <div class="row align-items-center g-5">
+
+            <!-- LEFT -->
+
+            <div class="col-lg-7">
+
+                <div class="scanner-card">
+
+                    <video
+                        id="video"
+                        autoplay
+                        playsinline
+                        muted>
+                    </video>
+
+                    <canvas
+                        id="canvas"
+                        style="display:none;">
+                    </canvas>
+
+                    <div class="scan-line"></div>
+
+                </div>
+
+                <div class="scanner-buttons">
+
+                    <button id="startBtn" class="scanner-btn primary-btn">
+
+                        <i class="fa-solid fa-camera"></i>
+
+                    <span>Start Camera</span>
+
+                    </button>
+
+                    <div id="loadingBox" class="analysis-card mt-4" style="display:none;">
+
+    <h3>
+
+        Analyzing Skin...
+
+    </h3>
+
+    <ul class="scanner-list">
+
+        <li>📷 Capturing Face...</li>
+
+        <li>🙂 Detecting Face...</li>
+
+        <li>🔍 Extracting Facial Regions...</li>
+
+        <li>🧴 Analyzing Skin Features...</li>
+
+        <li>📄 Generating Report...</li>
+
+    </ul>
+
+</div>
+
+                </div>
+
+            </div>
+
+            <!-- RIGHT -->
+
+            <div class="col-lg-5">
+
+                <div class="analysis-card">
+                    <h3>
+
+    AI Analysis Includes
+
+</h3>
+
+<div class="analysis-result">
+
+    <div class="dashboard-item">
+
+        <span>Skin Type</span>
+
+        <strong>✔</strong>
+
+    </div>
+
+    <div class="dashboard-item">
+
+        <span>Oiliness</span>
+
+        <strong>✔</strong>
+
+    </div>
+
+    <div class="dashboard-item">
+
+        <span>Dryness</span>
+
+        <strong>✔</strong>
+
+    </div>
+
+    <div class="dashboard-item">
+
+        <span>Texture</span>
+
+        <strong>✔</strong>
+
+    </div>
+
+    <div class="dashboard-item">
+
+        <span>Redness</span>
+
+        <strong>✔</strong>
+
+    </div>
+
+    <div class="dashboard-item">
+
+        <span>Pigmentation</span>
+
+        <strong>✔</strong>
+
+    </div>
+
+</div>
+
+
+                    <hr>
+
+                    <p>
+
+                        This analysis uses
+                        <strong>Computer Vision</strong>
+                        and
+                        <strong>Rule-Based Classification</strong>
+                        to estimate skin characteristics from a live camera frame.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<script>
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+
+const startBtn = document.getElementById("startBtn");
+const loadingBox = document.getElementById("loadingBox");
+
+
+// ================= START CAMERA =================
+
+startBtn.addEventListener("click", async () => {
+
+    try{
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+
+            video:true
+
+        });
+
+        video.srcObject = stream;
+        setTimeout(() => {
+
+            captureAndAnalyze();
+
+        }, 3000);
+
+    }
+
+    catch(error){
+
+        alert("Camera permission denied.");
+
+    }
+
+});
+
+
+// ================= ANALYZE =================
+
+async function captureAndAnalyze() {
+
+    if (!video.srcObject) return;
+
+    loadingBox.style.display = "block";
+
+    canvas.width = video.videoWidth;
+
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const image = canvas.toDataURL("image/jpeg");
+
+    await fetch("/analyze", {
+
+        method: "POST",
+
+        headers: {
+
+            "Content-Type": "application/json"
+
+        },
+
+        body: JSON.stringify({
+
+            image: image
+
+        })
+
+    });
+
+    setTimeout(() => {
+
+        window.location.href = "/result";
+
+    }, 3000);
+
+}
+
+</script>
+
+{% endblock %}

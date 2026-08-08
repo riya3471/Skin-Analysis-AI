@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | Skiné{% endblock %}
+
+
+{% block content %}
+
+
+<section class="admin-section">
+
+
+    <div class="container">
+
+
+        <!-- Heading -->
+
+        <div class="text-center mb-5">
+
+
+            <span class="hero-tag">
+
+                Admin Panel
+
+            </span>
+
+
+            <h1 class="admin-title">
+
+                Skiné Admin Dashboard
+
+            </h1>
+
+
+            <p class="admin-text">
+
+                Manage users, monitor skin analysis activity, and review platform performance.
+
+            </p>
+
+
+        </div>
+
+
+
+        <!-- Stats Cards -->
+
+
+        <div class="row g-4">
+
+
+            <div class="col-lg-3 col-md-6">
+
+
+                <div class="admin-card text-center">
+
+
+                    <div class="admin-icon">
+
+                        <i class="fa-solid fa-users"></i>
+
+                    </div>
+
+
+                    <h3>
+
+                        Total Users
+
+                    </h3>
+
+
+                    <h2>
+
+                        {{ stats.users }}
+
+                    </h2>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <div class="col-lg-3 col-md-6">
+
+
+                <div class="admin-card text-center">
+
+
+                    <div class="admin-icon">
+
+                        <i class="fa-solid fa-camera"></i>
+
+                    </div>
+
+
+                    <h3>
+
+                        Total Scans
+
+                    </h3>
+
+
+                    <h2>
+
+                        {{ stats.scans }}
+
+                    </h2>
+
+
+                </div>
+
+
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+
+
+                <div class="admin-card text-center">
+
+
+                    <div class="admin-icon">
+
+                        <i class="fa-solid fa-chart-line"></i>
+
+                    </div>
+
+
+                    <h3>
+
+                        Avg Skin Score
+
+                    </h3>
+
+
+                    <h2>
+
+                        {{ stats.score }}
+
+                    </h2>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <div class="col-lg-3 col-md-6">
+
+
+                <div class="admin-card text-center">
+
+
+                    <div class="admin-icon">
+
+                        <i class="fa-solid fa-star"></i>
+
+                    </div>
+
+
+                    <h3>
+
+                        Feedback
+
+                    </h3>
+
+
+                    <h2>
+
+                        {{ stats.feedback }}
+
+                    </h2>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+
+
+        <!-- Recent Activity -->
+
+
+        <div class="admin-table-card mt-5">
+
+
+            <h3 class="mb-4">
+
+                Recent Skin Analysis
+
+            </h3>
+
+
+
+            <div class="table-responsive">
+
+
+                <table class="admin-table">
+
+
+                    <thead>
+
+
+                        <tr>
+
+                            <th>User</th>
+
+                            <th>Skin Type</th>
+
+                            <th>Condition</th>
+
+                            <th>Date</th>
+
+                        </tr>
+
+
+                    </thead>
+
+
+
+                    <tbody>
+
+
+                    {% for item in activities %}
+
+
+                        <tr>
+
+                            <td>
+                                {{ item.user }}
+                            </td>
+
+
+                            <td>
+                                {{ item.skin }}
+                            </td>
+
+
+                            <td>
+                                {{ item.condition }}
+                            </td>
+
+
+                            <td>
+                                {{ item.date }}
+                            </td>
+
+
+                        </tr>
+
+
+                    {% endfor %}
+
+
+                    </tbody>
+
+
+                </table>
+
+
+            </div>
+
+
+        </div>
+        
+        <div class="text-center mt-5">
+
+
+            <a href="{{ url_for('dashboard') }}" 
+               class="hero-btn">
+
+
+                <i class="fa-solid fa-house"></i>
+
+                Back To Dashboard
+
+
+            </a>
+
+
+        </div>
+
+
+    </div>
+
+
+</section>
+
+
+{% endblock %}

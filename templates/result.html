@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Result | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="result-section">
+
+    <div class="container">
+
+        <!-- Heading -->
+
+        <div class="text-center mb-5">
+
+            <span class="hero-tag">
+
+                AI Skin Analysis
+
+            </span>
+
+            <h1 class="result-title">
+
+                Your Skin Report
+
+            </h1>
+
+            <p class="result-text">
+
+                Here are your AI-powered skin analysis results and personalized skincare recommendations.
+
+            </p>
+
+        </div>
+
+        <div class="row g-4">
+                        <!-- Left Card -->
+
+            <div class="col-lg-6">
+
+                <div class="result-card">
+
+                    <h3>
+
+                        Analysis Summary
+
+                    </h3>
+
+                    <div class="result-item">
+
+                        <span>Skin Type</span>
+
+                        <strong>{{ result.skin_type }}</strong>
+
+                    </div>
+                    <div class="result-item">
+
+    <span>Oiliness</span>
+
+    <strong>{{ result.oiliness }}</strong>
+
+</div>
+
+
+<div class="result-item">
+
+    <span>Dryness</span>
+
+    <strong>{{ result.dryness }}</strong>
+
+</div>
+
+
+<div class="result-item">
+
+    <span>Texture</span>
+
+    <strong>{{ result.texture }}</strong>
+
+</div>
+
+
+<div class="result-item">
+
+    <span>Redness</span>
+
+    <strong>{{ result.redness }}</strong>
+
+</div>
+
+
+<div class="result-item">
+
+    <span>Pigmentation</span>
+
+    <strong>{{ result.pigmentation }}</strong>
+
+</div>
+
+                </div>
+
+            </div>
+
+            <!-- Right Card -->
+             <div class="result-card">
+
+    <h3>
+
+        Morning Routine
+
+    </h3>
+
+    <ul class="recommend-list">
+
+        <li><i class="fa-solid fa-sun"></i> Gentle Face Wash</li>
+
+        <li><i class="fa-solid fa-sun"></i> Niacinamide Serum</li>
+
+        <li><i class="fa-solid fa-sun"></i> SPF 50 Sunscreen</li>
+
+    </ul>
+
+</div>
+<hr>
+
+<h3>
+
+    Night Routine
+
+</h3>
+
+<ul class="recommend-list">
+
+    <li>
+
+        <i class="fa-solid fa-moon"></i>
+
+        Cleanse Your Face
+
+    </li>
+
+    <li>
+
+        <i class="fa-solid fa-moon"></i>
+
+        Apply Moisturizer
+
+    </li>
+
+    <li>
+
+        <i class="fa-solid fa-moon"></i>
+
+        Use Hydrating Night Cream
+
+    </li>
+
+</ul>
+<hr>
+
+<h3>
+
+    Possible Causes
+
+</h3>
+
+<ul class="recommend-list">
+
+    <li>
+
+        <i class="fa-solid fa-triangle-exclamation"></i>
+
+        Excess Sebum Production
+
+    </li>
+
+    <li>
+
+        <i class="fa-solid fa-triangle-exclamation"></i>
+
+        Frequent Sun Exposure
+
+    </li>
+
+    <li>
+
+        <i class="fa-solid fa-triangle-exclamation"></i>
+
+        Inconsistent Skincare Routine
+
+    </li>
+
+    <li>
+
+        <i class="fa-solid fa-triangle-exclamation"></i>
+
+        Hormonal Changes
+
+    </li>
+
+</ul>
+        </div>
+        <!-- Analysis Note -->
+
+<div class="analysis-note-card">
+
+    <div class="analysis-note-icon">
+        <i class="fa-solid fa-circle-info"></i>
+    </div>
+
+    <div>
+        <h3>Analysis Note</h3>
+
+        <p>
+            This skin assessment is generated using computer vision techniques.
+            Results may vary due to lighting conditions, shadows, camera quality,
+            and image angle. For best accuracy, use a clear front-facing image
+            in good natural lighting.
+        </p>
+    </div>
+
+</div>
+                    <!-- Bottom Buttons -->
+
+            <div class="text-center mt-5">
+
+                <a href="{{ url_for('scanner') }}" class="hero-btn">
+
+                    <i class="fa-solid fa-rotate-left"></i>
+
+                    Scan Again
+
+                </a>
+
+                <a href="{{ url_for('dashboard') }}"
+                   class="btn btn-outline-primary ms-3">
+
+                    Back to Dashboard
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}
