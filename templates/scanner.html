@@ -11,24 +11,29 @@
             <span class="hero-tag">Computer Vision Analysis</span>
             <h1 class="scanner-title">Scan Your Skin</h1>
             <p class="scanner-text">
-                Position your face within the frame in good lighting, or upload a clear front-facing portrait photo for immediate AI analysis.
+                Position your face within the frame in good lighting, or upload a clear front-facing portrait photo for
+                immediate AI analysis.
             </p>
         </div>
 
         <!-- Alert messages container for scanner errors -->
-        <div id="scannerAlert" class="alert alert-danger alert-dismissible fade show d-none" role="alert" style="border-radius: 12px; max-width: 800px; margin: 0 auto 30px auto;">
+        <div id="scannerAlert" class="alert alert-danger alert-dismissible fade show d-none" role="alert"
+            style="border-radius: 12px; max-width: 800px; margin: 0 auto 30px auto;">
             <i class="fa-solid fa-triangle-exclamation me-2"></i>
             <span id="scannerAlertMsg">An error occurred.</span>
-            <button type="button" class="btn-close" onclick="document.getElementById('scannerAlert').classList.add('d-none')"></button>
+            <button type="button" class="btn-close"
+                onclick="document.getElementById('scannerAlert').classList.add('d-none')"></button>
         </div>
 
         <div class="row align-items-stretch g-4">
             <!-- LEFT: Camera & Upload Interface -->
             <div class="col-lg-7">
                 <div class="scanner-card position-relative overflow-hidden">
-                    <video id="video" autoplay playsinline muted style="width: 100%; border-radius: 16px; background: #1a1a1a; display: block; min-height: 360px; object-fit: cover;"></video>
+                    <video id="video" autoplay playsinline muted
+                        style="width: 100%; border-radius: 16px; background: #1a1a1a; display: block; min-height: 360px; object-fit: cover;"></video>
                     <canvas id="canvas" style="display:none;"></canvas>
-                    <img id="imagePreview" src="" alt="Preview" class="d-none" style="width: 100%; border-radius: 16px; min-height: 360px; object-fit: cover;">
+                    <img id="imagePreview" src="" alt="Preview" class="d-none"
+                        style="width: 100%; border-radius: 16px; min-height: 360px; object-fit: cover;">
                     <div id="scanLine" class="scan-line d-none"></div>
                 </div>
 
@@ -45,30 +50,41 @@
                             <span>Analyze Now</span>
                         </button>
 
-                        <label for="fileUploadInput" class="scanner-btn btn-outline-primary mb-0" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid var(--green); color: var(--green); border-radius: 30px; padding: 12px 24px; font-weight: 500;">
+                        <label for="fileUploadInput" class="scanner-btn btn-outline-primary mb-0"
+                            style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid var(--green); color: var(--green); border-radius: 30px; padding: 12px 24px; font-weight: 500;">
                             <i class="fa-solid fa-cloud-arrow-up"></i>
                             <span>Upload Photo</span>
                         </label>
                         <input type="file" id="fileUploadInput" accept="image/*" class="d-none">
 
-                        <button id="stopBtn" class="scanner-btn btn-outline-secondary d-none" style="border-radius: 30px; padding: 12px 20px;">
+                        <button id="stopBtn" class="scanner-btn btn-outline-secondary d-none"
+                            style="border-radius: 30px; padding: 12px 20px;">
                             <i class="fa-solid fa-stop"></i>
                             <span>Stop Camera</span>
                         </button>
                     </div>
 
                     <!-- Step-by-step Loading Indicator -->
-                    <div id="loadingBox" class="analysis-card mt-4 shadow-sm" style="display:none; border: 1px solid #707b57; background: rgba(253, 251, 248, 0.95);">
+                    <div id="loadingBox" class="analysis-card mt-4 shadow-sm"
+                        style="display:none; border: 1px solid #707b57; background: rgba(253, 251, 248, 0.95);">
                         <div class="d-flex align-items-center mb-3 gap-3">
-                            <div class="spinner-border text-success" role="status" style="width: 2rem; height: 2rem;"></div>
-                            <h4 class="mb-0 fw-bold" style="color: var(--green-dark);">AI Skin Analysis in Progress...</h4>
+                            <div class="spinner-border text-success" role="status" style="width: 2rem; height: 2rem;">
+                            </div>
+                            <h4 class="mb-0 fw-bold" style="color: var(--green-dark);">AI Skin Analysis in Progress...
+                            </h4>
                         </div>
                         <ul class="scanner-list" id="scanStepList" style="list-style: none; padding-left: 0;">
-                            <li id="step1" class="py-1"><i class="fa-solid fa-circle-notch fa-spin text-primary me-2"></i> 1. Capturing high-resolution facial frame...</li>
-                            <li id="step2" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 2. Detecting facial landmarks & frontal alignment...</li>
-                            <li id="step3" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 3. Extracting forehead & cheek regions...</li>
-                            <li id="step4" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 4. Analyzing oiliness, texture, dryness, redness & pigmentation...</li>
-                            <li id="step5" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 5. Formulating personalized skincare routines...</li>
+                            <li id="step1" class="py-1"><i
+                                    class="fa-solid fa-circle-notch fa-spin text-primary me-2"></i> 1. Capturing
+                                high-resolution facial frame...</li>
+                            <li id="step2" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 2.
+                                Detecting facial landmarks & frontal alignment...</li>
+                            <li id="step3" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 3.
+                                Extracting forehead & cheek regions...</li>
+                            <li id="step4" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 4.
+                                Analyzing oiliness, texture, dryness, redness & pigmentation...</li>
+                            <li id="step5" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 5.
+                                Formulating personalized skincare routines...</li>
                         </ul>
                     </div>
                 </div>
@@ -86,35 +102,45 @@
                         </p>
 
                         <div class="analysis-result">
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-droplet text-primary me-2"></i> Skin Type Classification</span>
+                            <div
+                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span><i class="fa-solid fa-droplet text-primary me-2"></i> Skin Type
+                                    Classification</span>
                                 <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div
+                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
                                 <span><i class="fa-solid fa-sun text-warning me-2"></i> Oiliness & Specular Shine</span>
                                 <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div
+                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
                                 <span><i class="fa-solid fa-water text-info me-2"></i> Dryness & Barrier Level</span>
                                 <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-gem text-secondary me-2"></i> Texture Smoothness (Laplacian)</span>
+                            <div
+                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span><i class="fa-solid fa-gem text-secondary me-2"></i> Texture Smoothness
+                                    (Laplacian)</span>
                                 <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div
+                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
                                 <span><i class="fa-solid fa-heart text-danger me-2"></i> Redness & Sensitivity</span>
                                 <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
                             </div>
                             <div class="dashboard-item d-flex justify-content-between align-items-center py-2">
-                                <span><i class="fa-solid fa-circle-half-stroke text-dark me-2"></i> Pigmentation & Tone Uniformity</span>
+                                <span><i class="fa-solid fa-circle-half-stroke text-dark me-2"></i> Pigmentation & Tone
+                                    Uniformity</span>
                                 <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-4 p-3 rounded" style="background: rgba(112, 123, 87, 0.08); border-left: 4px solid var(--green);">
-                        <h6 class="fw-bold mb-1" style="color: var(--green-dark);"><i class="fa-solid fa-lightbulb me-1"></i> Best Practices for Accuracy</h6>
+                    <div class="mt-4 p-3 rounded"
+                        style="background: rgba(112, 123, 87, 0.08); border-left: 4px solid var(--green);">
+                        <h6 class="fw-bold mb-1" style="color: var(--green-dark);"><i
+                                class="fa-solid fa-lightbulb me-1"></i> Best Practices for Accuracy</h6>
                         <ul class="small text-muted mb-0 ps-3">
                             <li>Face the camera directly with a neutral expression.</li>
                             <li>Ensure balanced natural lighting without heavy cast shadows.</li>
