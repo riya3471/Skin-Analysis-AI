@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Skin Analysis Report | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="result-section">
+    <div class="container">
+        <!-- Heading -->
+        <div class="text-center mb-5">
+            <span class="hero-tag">Diagnostic Report</span>
+            <h1 class="result-title">Your AI Skin Report</h1>
+            <p class="result-text">
+                Generated using Computer Vision feature extraction and evidence-based dermatological rules.
+                {% if result.display_date or result.formatted_date %}
+                <br><span class="badge bg-light text-muted border mt-2 px-3 py-2"><i class="fa-regular fa-calendar-check me-1"></i> Scan Date: {{ result.formatted_date or result.display_date }}</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- TOP HEADLINE SUMMARY CARD -->
+        <div class="card border-0 shadow-sm mb-4 p-4 p-md-5" style="border-radius: 20px; background: linear-gradient(135deg, #ffffff, #fbf9f4); border: 1px solid var(--border);">
+            <div class="row align-items-center g-4">
+                <div class="col-md-4 text-center border-end-md">
+                    <span class="text-uppercase small fw-bold tracking-wider text-muted d-block mb-1">Detected Skin Type</span>
+                    <h2 class="display-6 fw-bold mb-2" style="color: var(--green-dark);">{{ result.skin_type or 'Normal' }}</h2>
+                    <span class="badge px-3 py-2" style="background: rgba(112, 123, 87, 0.15); color: var(--green-dark); font-size: 0.9rem; border-radius: 20px;">
+                        <i class="fa-solid fa-sparkles me-1"></i> {{ result.overall_condition or 'Balanced & Healthy' }}
+                    </span>
+                </div>
+
+                <div class="col-md-4 text-center border-end-md">
+                    <span class="text-uppercase small fw-bold tracking-wider text-muted d-block mb-1">Skin Health Score</span>
+                    <div class="d-inline-flex align-items-center justify-content-center my-2" style="width: 90px; height: 90px; border-radius: 50%; background: #f4efe6; border: 4px solid var(--green);">
+                        <span class="fs-4 fw-bold" style="color: var(--green-dark);">{{ result.overall_score or 88 }}%</span>
+                    </div>
+                    <p class="small text-muted mb-0">Calculated across 5 barrier biomarkers</p>
+                </div>
+
+                <div class="col-md-4 text-center text-md-start ps-md-4">
+                    <h5 class="fw-bold mb-2" style="color: var(--green-dark);"><i class="fa-solid fa-notes-medical me-2"></i> Clinical Summary</h5>
+                    <p class="small text-muted mb-3">
+                        {% if result.skin_type == 'Oily' %}
+                        Elevated sebum reflection detected in the T-zone and forehead. Prioritize pore-clearing BHA actives and lightweight hydration.
+                        {% elif result.skin_type == 'Dry' %}
+                        Low sebum levels and micro-texture variations indicate moisture loss. Focus on ceramide barrier reinforcement.
+                        {% elif result.skin_type == 'Combination' %}
+                        Variance between forehead and cheek hydration observed. Use targeted zone-specific balancing routines.
+                        {% else %}
+                        Your skin exhibits balanced oil-moisture equilibrium. Maintain with preventative UV protection and antioxidant care.
+                        {% endif %}
+                    </p>
+                    <a href="{{ url_for('scanner') }}" class="btn btn-sm btn-outline-primary" style="border-radius: 20px;">
+                        <i class="fa-solid fa-camera me-1"></i> Retake Scan
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6 BIOMARKER METRICS GRID -->
+        <h3 class="mb-4" style="color: var(--green-dark); font-size: 24px;"><i class="fa-solid fa-chart-simple me-2"></i> Analyzed Facial Biomarkers</h3>
+        <div class="row g-3 mb-5">
+            <!-- Oiliness -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="dashboard-card text-center p-3 h-100 shadow-sm" style="border-radius: 16px;">
+                    <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
+                        <i class="fa-solid fa-droplet text-warning"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">Oiliness</h6>
+                    <h4 class="fw-bold mb-1" style="font-size: 1.25rem;">{{ result.oiliness_level or result.oiliness or 'Moderate' }}</h4>
+                    {% if result.shiny_percentage %}
+                    <span class="badge bg-light text-muted border small">{{ result.shiny_percentage }}% shine</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Dryness -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="dashboard-card text-center p-3 h-100 shadow-sm" style="border-radius: 16px;">
+                    <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
+                        <i class="fa-solid fa-water text-info"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">Dryness</h6>
+                    <h4 class="fw-bold mb-1" style="font-size: 1.25rem;">{{ result.dryness_level or result.dryness or 'Low' }}</h4>
+                    {% if result.dryness_score %}
+                    <span class="badge bg-light text-muted border small">Score {{ result.dryness_score }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Texture -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="dashboard-card text-center p-3 h-100 shadow-sm" style="border-radius: 16px;">
+                    <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
+                        <i class="fa-solid fa-cubes text-secondary"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">Texture</h6>
+                    <h4 class="fw-bold mb-1" style="font-size: 1.25rem;">{{ result.texture_level or result.texture or 'Smooth' }}</h4>
+                    {% if result.texture_score %}
+                    <span class="badge bg-light text-muted border small">Var {{ result.texture_score }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Redness -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="dashboard-card text-center p-3 h-100 shadow-sm" style="border-radius: 16px;">
+                    <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
+                        <i class="fa-solid fa-heart text-danger"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">Redness</h6>
+                    <h4 class="fw-bold mb-1" style="font-size: 1.25rem;">{{ result.redness_level or result.redness or 'Low' }}</h4>
+                    {% if result.redness_score %}
+                    <span class="badge bg-light text-muted border small">Index {{ result.redness_score }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pigmentation -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="dashboard-card text-center p-3 h-100 shadow-sm" style="border-radius: 16px;">
+                    <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
+                        <i class="fa-solid fa-circle-half-stroke text-dark"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">Pigmentation</h6>
+                    <h4 class="fw-bold mb-1" style="font-size: 1.25rem;">{{ result.pigmentation_level or result.pigmentation or 'Low' }}</h4>
+                    {% if result.pigmentation_percentage %}
+                    <span class="badge bg-light text-muted border small">{{ result.pigmentation_percentage }}% area</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Brightness -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="dashboard-card text-center p-3 h-100 shadow-sm" style="border-radius: 16px;">
+                    <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
+                        <i class="fa-solid fa-sun text-warning"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">Brightness</h6>
+                    <h4 class="fw-bold mb-1" style="font-size: 1.25rem;">{{ result.forehead_brightness or 145 }}</h4>
+                    <span class="badge bg-light text-muted border small">HSV Value</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROUTINES & INGREDIENTS SECTION -->
+        <div class="row g-4 mb-5">
+            <!-- Morning Routine -->
+            <div class="col-lg-6">
+                <div class="result-card h-100 p-4 shadow-sm" style="border-radius: 18px;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3 p-2 rounded-circle" style="background: rgba(255, 193, 7, 0.15); color: #b78103;">
+                            <i class="fa-solid fa-sun fa-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0 fw-bold" style="color: var(--green-dark);">Morning Skincare Routine</h4>
+                            <span class="text-muted small">Targeted daytime protection</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <ul class="recommend-list ps-0" style="list-style: none;">
+                        {% if result.morning_routine %}
+                            {% for step in result.morning_routine %}
+                            <li class="py-2 border-bottom d-flex align-items-start gap-2">
+                                <span class="badge bg-primary text-white rounded-circle mt-1" style="width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem;">{{ loop.index }}</span>
+                                <span class="text-dark">{{ step }}</span>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="py-2 border-bottom"><i class="fa-solid fa-check text-success me-2"></i> Gentle Foaming Cleanser</li>
+                            <li class="py-2 border-bottom"><i class="fa-solid fa-check text-success me-2"></i> Niacinamide Balancing Serum</li>
+                            <li class="py-2"><i class="fa-solid fa-check text-success me-2"></i> Broad Spectrum SPF 50+ Sunscreen</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Night Routine -->
+            <div class="col-lg-6">
+                <div class="result-card h-100 p-4 shadow-sm" style="border-radius: 18px;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3 p-2 rounded-circle" style="background: rgba(13, 110, 253, 0.12); color: #0d6efd;">
+                            <i class="fa-solid fa-moon fa-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0 fw-bold" style="color: var(--green-dark);">Night Skincare Routine</h4>
+                            <span class="text-muted small">Repair & cell turnover recovery</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <ul class="recommend-list ps-0" style="list-style: none;">
+                        {% if result.night_routine %}
+                            {% for step in result.night_routine %}
+                            <li class="py-2 border-bottom d-flex align-items-start gap-2">
+                                <span class="badge bg-secondary text-white rounded-circle mt-1" style="width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem;">{{ loop.index }}</span>
+                                <span class="text-dark">{{ step }}</span>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="py-2 border-bottom"><i class="fa-solid fa-check text-success me-2"></i> Oil Cleanser or Micellar Water (Double Cleanse)</li>
+                            <li class="py-2 border-bottom"><i class="fa-solid fa-check text-success me-2"></i> Barrier Restoring Ceramide Moisturizer</li>
+                            <li class="py-2"><i class="fa-solid fa-check text-success me-2"></i> Targeted Overnight BHA / Spot Treatment</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECOMMENDED ACTIVE INGREDIENTS & THINGS TO AVOID -->
+        <div class="row g-4 mb-5">
+            <!-- Recommended Active Ingredients -->
+            <div class="col-lg-7">
+                <div class="analysis-card h-100 p-4 shadow-sm" style="border-radius: 18px;">
+                    <h4 class="mb-3 fw-bold" style="color: var(--green-dark);">
+                        <i class="fa-solid fa-flask-vial text-primary me-2"></i> Tailored Active Ingredients
+                    </h4>
+                    <p class="small text-muted mb-4">Key compounds suited to your skin's biometric characteristics:</p>
+
+                    <div class="row g-3">
+                        {% if result.recommended_ingredients %}
+                            {% for item in result.recommended_ingredients %}
+                            <div class="col-md-6">
+                                <div class="p-3 rounded h-100" style="background: rgba(112, 123, 87, 0.08); border: 1px solid rgba(112, 123, 87, 0.2);">
+                                    <h6 class="fw-bold text-success mb-1">
+                                        <i class="fa-solid fa-leaf me-1"></i>
+                                        {{ item.ingredient if item is mapping else item }}
+                                    </h6>
+                                    <p class="small text-muted mb-0">
+                                        {{ item.reason if item is mapping else 'Provides targeted barrier support and improves overall texture.' }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-md-6">
+                                <div class="p-3 rounded" style="background: rgba(112, 123, 87, 0.08);">
+                                    <h6 class="fw-bold text-success mb-1">Niacinamide (Vitamin B3)</h6>
+                                    <p class="small text-muted mb-0">Balances sebum excretion and calms visible skin inflammation.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 rounded" style="background: rgba(112, 123, 87, 0.08);">
+                                    <h6 class="fw-bold text-success mb-1">Hyaluronic Acid</h6>
+                                    <p class="small text-muted mb-0">Draws moisture into dermal layers without leaving a greasy residue.</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Things to Avoid & Causes -->
+            <div class="col-lg-5">
+                <div class="analysis-card h-100 p-4 shadow-sm" style="border-radius: 18px;">
+                    <h4 class="mb-3 fw-bold text-danger">
+                        <i class="fa-solid fa-ban me-2"></i> Ingredients & Habits to Avoid
+                    </h4>
+                    <ul class="ps-3 small text-muted mb-4">
+                        {% if result.things_to_avoid %}
+                            {% for avoid in result.things_to_avoid %}
+                            <li class="mb-2">{{ avoid }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="mb-2">Over-cleansing with high-pH bar soaps.</li>
+                            <li class="mb-2">Heavy comedogenic facial oils and waxes.</li>
+                            <li class="mb-2">Skipping sunscreen on cloudy days.</li>
+                        {% endif %}
+                    </ul>
+
+                    {% if result.possible_causes %}
+                    <h5 class="fw-bold mb-2" style="color: var(--green-dark);"><i class="fa-solid fa-circle-question me-2"></i> Potential Triggers</h5>
+                    <ul class="ps-3 small text-muted mb-0">
+                        {% for cause in result.possible_causes %}
+                        <li class="mb-1">{{ cause }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM ACTIONS & NOTE -->
+        <div class="analysis-note-card mb-4 p-4 shadow-sm" style="border-radius: 16px;">
+            <div class="analysis-note-icon">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div>
+                <h5 class="fw-bold mb-1">Diagnostic Advisory</h5>
+                <p class="small text-muted mb-0">
+                    This skin assessment is powered by computer vision algorithms calibrated against facial regions. Individual environmental factors, screen lighting, and ambient humidity can affect real-time readings. For clinical dermatological disorders, please consult a board-certified dermatologist.
+                </p>
+            </div>
+        </div>
+
+        <div class="text-center mt-5 mb-4 d-flex justify-content-center flex-wrap gap-3">
+            <a href="{{ url_for('scanner') }}" class="hero-btn">
+                <i class="fa-solid fa-camera"></i>
+                Start New Scan
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary px-4 py-2" style="border-radius: 30px;">
+                <i class="fa-solid fa-chart-pie me-1"></i> View Dashboard
+            </a>
+            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 30px;">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i> Scan History
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

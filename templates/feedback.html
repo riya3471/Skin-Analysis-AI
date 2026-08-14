@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Community Feedback | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="feedback-section">
+    <div class="container">
+        <!-- Heading -->
+        <div class="text-center mb-5">
+            <span class="hero-tag">Community Voices</span>
+            <h1 class="feedback-title">Share Your Experience</h1>
+            <p class="feedback-text">
+                Your reviews help us refine our Computer Vision accuracy and expand personalized skincare recommendations.
+            </p>
+        </div>
+
+        <div class="row g-5">
+            <!-- Feedback Form -->
+            <div class="col-lg-5">
+                <div class="feedback-card p-4 p-md-5 shadow-sm" style="border-radius: 20px;">
+                    <h3 class="mb-3 fw-bold" style="color: var(--green-dark);">
+                        <i class="fa-solid fa-pen-nib me-2"></i> Leave a Review
+                    </h3>
+                    <p class="small text-muted mb-4">How was your AI skin analysis experience?</p>
+
+                    <form method="POST" action="{{ url_for('feedback') }}">
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted d-block">Rating</label>
+                            <div class="rating-stars d-flex gap-2 fs-4 text-warning" id="starContainer" style="cursor: pointer;">
+                                <i class="fa-solid fa-star star-btn" data-value="1"></i>
+                                <i class="fa-solid fa-star star-btn" data-value="2"></i>
+                                <i class="fa-solid fa-star star-btn" data-value="3"></i>
+                                <i class="fa-solid fa-star star-btn" data-value="4"></i>
+                                <i class="fa-solid fa-star star-btn" data-value="5"></i>
+                            </div>
+                            <input type="hidden" name="rating" id="ratingInput" value="5">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Feedback & Comments</label>
+                            <textarea
+                                name="message"
+                                class="form-control custom-input"
+                                rows="4"
+                                placeholder="Tell us about the accuracy of your skin report, routines, or feature suggestions..."
+                                required></textarea>
+                        </div>
+
+                        <button type="submit" class="hero-btn w-100 justify-content-center">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            Submit Feedback
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- User Reviews List -->
+            <div class="col-lg-7">
+                <div class="feedback-card p-4 p-md-5 shadow-sm" style="border-radius: 20px;">
+                    <h3 class="mb-4 fw-bold" style="color: var(--green-dark);">
+                        <i class="fa-solid fa-comments me-2"></i> Verified User Reviews
+                    </h3>
+
+                    <div class="d-flex flex-column gap-3" style="max-height: 520px; overflow-y: auto; padding-right: 5px;">
+                        {% if feedbacks and feedbacks|length > 0 %}
+                            {% for item in feedbacks %}
+                            <div class="review-card p-3 border rounded shadow-xs" style="background: #fff; border-radius: 14px;">
+                                <div class="review-header d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:#e8e3d8; color:var(--green); font-size:16px;">
+                                            <i class="fa-solid fa-user"></i>
+                                        </div>
+                                        <h5 class="mb-0 fw-bold" style="font-size: 1.05rem;">
+                                            {{ item.user_name or item.name or 'Skiné User' }}
+                                        </h5>
+                                    </div>
+                                    <span class="text-warning fs-6">
+                                        {{ item.stars or item.rating }}
+                                    </span>
+                                </div>
+                                <p class="mb-0 text-muted small ps-5">
+                                    "{{ item.message }}"
+                                </p>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No reviews yet. Be the first to share your experience!</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const stars = document.querySelectorAll(".star-btn");
+    const ratingInput = document.getElementById("ratingInput");
+
+    stars.forEach(star => {
+        star.addEventListener("click", () => {
+            const val = parseInt(star.getAttribute("data-value"));
+            ratingInput.value = val;
+
+            stars.forEach((s, idx) => {
+                if (idx < val) {
+                    s.classList.remove("fa-regular");
+                    s.classList.add("fa-solid");
+                } else {
+                    s.classList.remove("fa-solid");
+                    s.classList.add("fa-regular");
+                }
+            });
+        });
+    });
+});
+</script>
+
+{% endblock %}
