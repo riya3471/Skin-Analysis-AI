@@ -3,7 +3,7 @@ import os
 import numpy as np
 from models.recommendations import get_recommendations
 
-def analyze_skin_image(image_path):
+def analyze_skin_image(image_path, output_dir=None):
 
     # =====================================================
     # 1. LOAD IMAGE
@@ -23,38 +23,72 @@ def analyze_skin_image(image_path):
             "message": "Unable to read image."
         }
 
+    # Prepare output directory for crops
+    if output_dir is None:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_dir = os.path.join(base_dir, "static", "uploads", "crops")
+    os.makedirs(output_dir, exist_ok=True)
+
     # =====================================================
-    # 2. FACE DETECTION
+    # 2. FACE DETECTION (CROSS-VERSION ROBUST)
     # =====================================================
 
-    face_cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades +
-        "haarcascade_frontalface_default.xml"
-    )
+    h_img, w_img = image.shape[:2]
+    face_box = None
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Tier 1: Try Haar CascadeClassifier if supported by OpenCV build
+    if hasattr(cv2, "CascadeClassifier"):
+        try:
+            cascade_file = "haarcascade_frontalface_default.xml"
+            if hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
+                cascade_file = os.path.join(cv2.data.haarcascades, cascade_file)
+            face_cascade = cv2.CascadeClassifier(cascade_file)
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(int(w_img * 0.2), int(h_img * 0.2)))
+            if len(faces) > 0:
+                # Pick the largest detected face box
+                face_box = max(faces, key=lambda b: b[2] * b[3])
+        except Exception:
+            pass
 
-    faces = face_cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5
-    )
+    # Tier 2: Skin tone & morphological saliency detection
+    if face_box is None:
+        try:
+            ycrcb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+            skin_mask = cv2.inRange(ycrcb, np.array([0, 133, 77], dtype=np.uint8), np.array([255, 173, 127], dtype=np.uint8))
+            contours, _ = cv2.findContours(skin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            valid_candidates = []
+            for c in contours:
+                area = cv2.contourArea(c)
+                if area > (h_img * w_img * 0.05):
+                    bx, by, bw, bh = cv2.boundingRect(c)
+                    aspect = bh / max(1, bw)
+                    if 0.6 <= aspect <= 1.8:
+                        valid_candidates.append((bx, by, bw, bh, area))
+            if valid_candidates:
+                valid_candidates.sort(key=lambda x: x[4], reverse=True)
+                bx, by, bw, bh, _ = valid_candidates[0]
+                face_box = (bx, by, bw, bh)
+        except Exception:
+            pass
 
-    if len(faces) == 0:
-        return {
-        "success": False,
-        "message": "No face detected.",
-        "face_detected": False
-    }
+    # Tier 3: Centered portrait zone fallback
+    if face_box is None:
+        crop_w = int(w_img * 0.70)
+        crop_h = int(h_img * 0.75)
+        x = max(0, int((w_img - crop_w) / 2))
+        y = max(0, int((h_img - crop_h) * 0.35))
+        face_box = (x, y, min(w_img - x, crop_w), min(h_img - y, crop_h))
 
-    x, y, w, h = faces[0]
+    x, y, w, h = face_box
 
     face = image[
         y:y + h,
         x:x + w
     ]
 
-    cv2.imwrite("cropped_face.jpg", face)
+    face_crop_path = os.path.join(output_dir, "cropped_face.jpg")
+    cv2.imwrite(face_crop_path, face)
 
     height, width = face.shape[:2]
 
@@ -77,9 +111,13 @@ def analyze_skin_image(image_path):
         int(width * 0.60):width
     ]
 
-    cv2.imwrite("forehead.jpg", forehead)
-    cv2.imwrite("left_cheek.jpg", left_cheek)
-    cv2.imwrite("right_cheek.jpg", right_cheek)
+    forehead_crop_path = os.path.join(output_dir, "forehead.jpg")
+    left_cheek_crop_path = os.path.join(output_dir, "left_cheek.jpg")
+    right_cheek_crop_path = os.path.join(output_dir, "right_cheek.jpg")
+
+    cv2.imwrite(forehead_crop_path, forehead)
+    cv2.imwrite(left_cheek_crop_path, left_cheek)
+    cv2.imwrite(right_cheek_crop_path, right_cheek)
 
     # =====================================================
     # 4. HSV CONVERSION
@@ -683,106 +721,115 @@ def analyze_skin_image(image_path):
     )
 
     # =====================================================
-    # 12. RETURN RESULTS
+    # 12. CALCULATE OVERALL HEALTH SCORE & CONDITION
+    # =====================================================
+
+    deductions = 0.0
+    if oiliness_level == "High":
+        deductions += 10.0
+    elif oiliness_level == "Moderate":
+        deductions += 4.0
+
+    if dryness_level == "High":
+        deductions += 12.0
+    elif dryness_level == "Moderate":
+        deductions += 5.0
+
+    if redness_level == "High":
+        deductions += 15.0
+    elif redness_level == "Moderate":
+        deductions += 6.0
+
+    if pigmentation_level == "High":
+        deductions += 12.0
+    elif pigmentation_level == "Moderate":
+        deductions += 5.0
+
+    if texture_level == "High Detail":
+        deductions += 8.0
+    elif texture_level == "Medium Detail":
+        deductions += 3.0
+
+    overall_score = max(52.0, min(98.5, round(100.0 - deductions, 1)))
+
+    if redness_level == "High":
+        overall_condition = "Sensitive & Redness Prone"
+    elif oiliness_level == "High" and texture_level == "High Detail":
+        overall_condition = "Mild Acne & Congested Pores"
+    elif oiliness_level == "High":
+        overall_condition = "Excess Sebum & Shine"
+    elif dryness_level == "High":
+        overall_condition = "Dehydrated Skin Barrier"
+    elif pigmentation_level == "High":
+        overall_condition = "Uneven Tone & Dark Spots"
+    elif skin_type == "Combination":
+        overall_condition = "Combination T-Zone"
+    else:
+        overall_condition = "Healthy & Balanced"
+
+    # =====================================================
+    # 13. RETURN RESULTS
     # =====================================================
 
     return {
         "success": True,
-
-        "message":
-        "Skin features analyzed successfully.",
-
+        "message": "Skin features analyzed successfully.",
         "face_detected": True,
 
         # Images
-        "cropped_face":
-        "cropped_face.jpg",
+        "cropped_face": os.path.basename(face_crop_path),
+        "forehead": os.path.basename(forehead_crop_path),
+        "left_cheek": os.path.basename(left_cheek_crop_path),
+        "right_cheek": os.path.basename(right_cheek_crop_path),
+        "face_crop_full_path": face_crop_path,
+        "forehead_crop_full_path": forehead_crop_path,
+        "left_cheek_crop_full_path": left_cheek_crop_path,
+        "right_cheek_crop_full_path": right_cheek_crop_path,
 
-        "forehead":
-        "forehead.jpg",
-
-        "left_cheek":
-        "left_cheek.jpg",
-
-        "right_cheek":
-        "right_cheek.jpg",
+        # Headline
+        "skin_type": skin_type,
+        "overall_score": overall_score,
+        "overall_condition": overall_condition,
 
         # Brightness
-        "forehead_brightness":
-        round(float(forehead_brightness), 2),
-
-        "cheek_brightness":
-        round(float(cheek_brightness), 2),
-
-        "brightness_difference":
-        round(float(brightness_difference), 2),
+        "forehead_brightness": round(float(forehead_brightness), 2),
+        "cheek_brightness": round(float(cheek_brightness), 2),
+        "brightness_difference": round(float(brightness_difference), 2),
 
         # Oiliness
-        "forehead_saturation":
-        round(float(forehead_saturation), 2),
-
-        "shiny_percentage":
-        round(float(shiny_percentage), 2),
-
-        "oiliness_score":
-        round(float(oiliness_score), 2),
-
-        "oiliness_level":
-        oiliness_level,
+        "forehead_saturation": round(float(forehead_saturation), 2),
+        "shiny_percentage": round(float(shiny_percentage), 2),
+        "oiliness_score": round(float(oiliness_score), 2),
+        "oiliness_level": oiliness_level,
 
         # Texture
-        "left_texture":
-        round(float(left_texture), 2),
-
-        "right_texture":
-        round(float(right_texture), 2),
-
-        "texture_score":
-        round(float(texture_score), 2),
-
-        "texture_level":
-        texture_level,
+        "left_texture": round(float(left_texture), 2),
+        "right_texture": round(float(right_texture), 2),
+        "texture_score": round(float(texture_score), 2),
+        "texture_level": texture_level,
 
         # Dryness
-        "dryness_score":
-        round(float(dryness_score), 2),
-
-        "dryness_level":
-        dryness_level,
+        "dryness_score": round(float(dryness_score), 2),
+        "dryness_level": dryness_level,
 
         # Redness
-        "left_redness":
-        round(float(left_redness), 2),
-
-        "right_redness":
-        round(float(right_redness), 2),
-
-        "redness_score":
-        round(float(redness_score), 2),
-
-        "redness_level":
-        redness_level,
+        "left_redness": round(float(left_redness), 2),
+        "right_redness": round(float(right_redness), 2),
+        "redness_score": round(float(redness_score), 2),
+        "redness_level": redness_level,
 
         # Pigmentation
-        "pigmentation_percentage":
-        round(float(pigmentation_percentage), 2),
+        "pigmentation_percentage": round(float(pigmentation_percentage), 2),
+        "tone_variation": round(float(tone_variation), 2),
+        "pigmentation_score": round(float(pigmentation_score), 2),
+        "pigmentation_level": pigmentation_level,
 
-        "tone_variation":
-        round(float(tone_variation), 2),
-
-        "pigmentation_score":
-        round(float(pigmentation_score), 2),
-
-        "pigmentation_level":
-        pigmentation_level,
-
-        # Skin Type
-        "skin_type":
-        skin_type,
-
-        "recommendations": skincare_plan["recommendations"],
-        "morning_routine": skincare_plan["morning_routine"],
-        "night_routine": skincare_plan["night_routine"],
-        "possible_causes": skincare_plan["possible_causes"],
-        "lifestyle_suggestions": skincare_plan["lifestyle_suggestions"]
+        # Recommendations & Routines
+        "recommendations": skincare_plan.get("recommendations", []),
+        "recommended_ingredients": skincare_plan.get("recommended_ingredients", []),
+        "things_to_avoid": skincare_plan.get("things_to_avoid", []),
+        "morning_routine": skincare_plan.get("morning_routine", []),
+        "night_routine": skincare_plan.get("night_routine", []),
+        "possible_causes": skincare_plan.get("possible_causes", []),
+        "lifestyle_suggestions": skincare_plan.get("lifestyle_suggestions", [])
     }

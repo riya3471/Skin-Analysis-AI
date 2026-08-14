@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="admin-section">
+    <div class="container">
+        <!-- Heading -->
+        <div class="text-center mb-5">
+            <span class="hero-tag">System Operations</span>
+            <h1 class="admin-title">Skiné Administration Console</h1>
+            <p class="admin-text">
+                Real-time diagnostics, active user metrics, and platform computer vision scan telemetry.
+            </p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-5">
+            <div class="col-lg-3 col-md-6">
+                <div class="admin-card text-center p-4 shadow-sm" style="border-radius: 18px;">
+                    <div class="admin-icon mx-auto mb-3" style="width: 60px; height: 60px; border-radius: 50%; background: rgba(13, 110, 253, 0.1); color: #0d6efd; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <h5 class="text-muted small mb-1">Total Users</h5>
+                    <h2 class="fw-bold mb-0" style="color: var(--green-dark);">{{ stats.users }}</h2>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="admin-card text-center p-4 shadow-sm" style="border-radius: 18px;">
+                    <div class="admin-icon mx-auto mb-3" style="width: 60px; height: 60px; border-radius: 50%; background: rgba(25, 135, 84, 0.1); color: #198754; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                        <i class="fa-solid fa-camera"></i>
+                    </div>
+                    <h5 class="text-muted small mb-1">Total Scans</h5>
+                    <h2 class="fw-bold mb-0" style="color: var(--green-dark);">{{ stats.scans }}</h2>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="admin-card text-center p-4 shadow-sm" style="border-radius: 18px;">
+                    <div class="admin-icon mx-auto mb-3" style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255, 193, 7, 0.15); color: #b78103; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <h5 class="text-muted small mb-1">Avg Skin Score</h5>
+                    <h2 class="fw-bold mb-0" style="color: var(--green-dark);">{{ stats.score }}</h2>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="admin-card text-center p-4 shadow-sm" style="border-radius: 18px;">
+                    <div class="admin-icon mx-auto mb-3" style="width: 60px; height: 60px; border-radius: 50%; background: rgba(220, 53, 69, 0.1); color: #dc3545; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <h5 class="text-muted small mb-1">User Feedbacks</h5>
+                    <h2 class="fw-bold mb-0" style="color: var(--green-dark);">{{ stats.feedback }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Scan Activity -->
+        <div class="admin-table-card p-4 p-md-5 shadow-sm" style="border-radius: 20px; background: #fff;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="mb-0 fw-bold" style="color: var(--green-dark);">
+                    <i class="fa-solid fa-clock-rotate-left me-2"></i> Recent Skin Analysis Pipeline Activity
+                </h3>
+                <span class="badge bg-light text-muted border px-3 py-2">Live Telemetry</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table admin-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Skin Type</th>
+                            <th>Diagnosed Condition</th>
+                            <th>Date / Timestamp</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if activities and activities|length > 0 %}
+                            {% for item in activities %}
+                            <tr>
+                                <td class="fw-semibold">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #e8e3d8; color: var(--green);">
+                                            <i class="fa-solid fa-user small"></i>
+                                        </div>
+                                        <span>{{ item.user }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge px-3 py-1" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); border-radius: 20px;">
+                                        {{ item.skin }}
+                                    </span>
+                                </td>
+                                <td>{{ item.condition }}</td>
+                                <td class="text-muted small">{{ item.date }}</td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill small">
+                                        Completed
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No scan activities logged yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="text-center mt-5">
+            <a href="{{ url_for('dashboard') }}" class="hero-btn">
+                <i class="fa-solid fa-house"></i>
+                Back To Dashboard
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

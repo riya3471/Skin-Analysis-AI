@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Skiné | AI Skin Analysis{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<!-- ================= NAVBAR ================= -->
+<nav class="navbar navbar-expand-lg fixed-top">
+    <div class="container">
+        <!-- Logo -->
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+            <div class="logo-text">
+                <h2>Skiné</h2>
+                <p>AI SKIN ANALYSIS</p>
+            </div>
+        </a>
+
+        <!-- Mobile Button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Menu -->
+        <div class="collapse navbar-collapse" id="menu">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('scanner') }}">
+                        <i class="fa-solid fa-camera me-1"></i> Scanner
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('history') }}">History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link position-relative" href="{{ url_for('notifications') }}">
+                        <i class="fa-regular fa-bell"></i>
+                        {% if unread_notifications_count and unread_notifications_count > 0 %}
+                        <span class="position-absolute top-1 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.65rem;">
+                            {{ unread_notifications_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('feedback') }}">Feedback</a>
+                </li>
+
+                {% if is_authenticated and current_user %}
+                    {% if current_user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link text-warning fw-semibold" href="{{ url_for('admin') }}">
+                            <i class="fa-solid fa-shield-halved me-1"></i> Admin
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item dropdown ms-lg-3">
+                        <a class="btn btn-outline-primary dropdown-toggle d-flex align-items-center gap-2 py-2 px-3" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 30px;">
+                            <i class="fa-solid fa-user-circle"></i>
+                            <span>{{ current_user.full_name.split(' ')[0] if current_user.full_name else 'Profile' }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 14px; margin-top: 10px;">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('profile') }}"><i class="fa-regular fa-user me-2"></i> My Profile</a></li>
+                            <li><a class="dropdown-item py-2" href="{{ url_for('dashboard') }}"><i class="fa-solid fa-chart-pie me-2"></i> Skin Dashboard</a></li>
+                            <li><a class="dropdown-item py-2" href="{{ url_for('history') }}"><i class="fa-solid fa-clock-rotate-left me-2"></i> Scan History</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i> Log Out</a></li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li class="nav-item ms-lg-2">
+                        <a class="nav-link fw-semibold" href="{{ url_for('login') }}">Log In</a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary px-4 py-2" style="border-radius: 25px;">Get Started</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ================= FLASH MESSAGES ================= -->
+<div class="container" style="margin-top: 100px; margin-bottom: -70px;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 12px;">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- ================= PAGE CONTENT ================= -->
+<main style="margin-top:110px; min-height: 70vh;">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="footer mt-5">
+    <div class="container">
+        <div class="row gy-4">
+            <div class="col-md-5">
+                <h3>Skiné</h3>
+                <p class="footer-text">
+                    Advanced AI skin analysis powered by Computer Vision. Discover your skin type, oiliness, hydration, and tailored skincare routines designed for optimal skin health.
+                </p>
+            </div>
+
+            <div class="col-md-3">
+                <h5>Quick Links</h5>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('scanner') }}">AI Skin Scan</a></li>
+                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('history') }}">Scan History</a></li>
+                    <li><a href="{{ url_for('profile') }}">Profile</a></li>
+                    <li><a href="{{ url_for('feedback') }}">Feedback</a></li>
+                </ul>
+            </div>
+
+            <div class="col-md-4">
+                <h5>Contact & Privacy</h5>
+                <p><i class="bi bi-envelope me-2"></i> support@skinai.com</p>
+                <p><i class="bi bi-geo-alt me-2"></i> Nepal</p>
+                <p><i class="bi bi-shield-check me-2"></i> 100% Private & Secure Skin Diagnostics</p>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="text-center copyright">
+            © 2026 Skiné • AI Skin Analysis & Skincare Engine
+        </div>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>

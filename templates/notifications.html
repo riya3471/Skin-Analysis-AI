@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="notification-section">
+    <div class="container">
+        <!-- Heading -->
+        <div class="text-center mb-5">
+            <span class="hero-tag">System Updates</span>
+            <h1 class="notification-title">Your Skin Alerts & Reminders</h1>
+            <p class="notification-text">
+                Stay updated with recent AI scan completions, skincare routines, and personalized sun-protection tips.
+            </p>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm p-4" style="border-radius: 20px; background: #fff;">
+                    {% if notifications and notifications|length > 0 %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for item in notifications %}
+                        <div class="notification-card p-3 d-flex align-items-start gap-3 border rounded" style="background: {% if not item.is_read %}rgba(112, 123, 87, 0.05){% else %}#fff{% endif %}; border-left: 4px solid var(--green) !important;">
+                            <div class="notification-icon rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; background: #f2ece1; color: var(--green-dark); font-size: 20px;">
+                                <i class="{{ item.icon or 'fa-solid fa-bell' }}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h5 class="mb-0 fw-bold" style="font-size: 1.05rem; color: var(--green-dark);">
+                                        {{ item.title }}
+                                        {% if not item.is_read %}
+                                        <span class="badge bg-danger rounded-pill ms-2" style="font-size: 0.65rem;">New</span>
+                                        {% endif %}
+                                    </h5>
+                                    <span class="notification-time small text-muted">
+                                        <i class="fa-regular fa-clock me-1"></i> {{ item.time_ago or item.time }}
+                                    </span>
+                                </div>
+                                <p class="mb-0 text-muted small">{{ item.message }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fa-regular fa-bell-slash text-muted fs-1 mb-3"></i>
+                        <h5 class="fw-bold text-muted">No Notifications Yet</h5>
+                        <p class="small text-muted">When you run new skin scans, your report alerts and daily tips will appear here.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-5">
+            <a href="{{ url_for('scanner') }}" class="hero-btn">
+                <i class="fa-solid fa-camera"></i>
+                Start New Analysis
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

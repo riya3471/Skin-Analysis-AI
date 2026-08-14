@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Scan History | Skiné{% endblock %}
+
+{% block content %}
+
+<section class="history-section">
+    <div class="container">
+        <!-- Heading -->
+        <div class="text-center mb-5">
+            <span class="hero-tag">Historical Progression</span>
+            <h1 class="history-title">Your Previous Skin Scans</h1>
+            <p class="history-text">
+                Review your computer vision assessments over time and monitor improvements in your skin barrier.
+            </p>
+        </div>
+
+        <div class="history-card p-4 p-md-5 shadow-sm" style="border-radius: 20px;">
+            {% if history and history|length > 0 %}
+            <div class="table-responsive">
+                <table class="table history-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Scan Date</th>
+                            <th>Detected Skin Type</th>
+                            <th>Clinical Condition</th>
+                            <th>Health Score</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in history %}
+                        <tr>
+                            <td class="fw-semibold">
+                                <i class="fa-regular fa-calendar me-2 text-muted"></i>
+                                {{ item.display_date }}
+                                {% if item.display_time %}
+                                <span class="text-muted small d-block">{{ item.display_time }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge px-3 py-2" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.85rem; border-radius: 20px;">
+                                    {{ item.skin_type }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ item.overall_condition or 'Healthy' }}
+                            </td>
+                            <td>
+                                <span class="fw-bold" style="color: var(--green-dark);">
+                                    {{ item.overall_score }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">
+                                    <i class="fa-solid fa-check-circle me-1"></i> Completed
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('result', id=item.id) }}" class="btn btn-sm btn-outline-primary px-3 py-1" style="border-radius: 20px;">
+                                    <i class="fa-regular fa-eye me-1"></i> View Report
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3 text-muted" style="font-size: 48px;">
+                    <i class="fa-solid fa-clipboard-question"></i>
+                </div>
+                <h4 class="fw-bold text-muted">No Skin Scans Recorded Yet</h4>
+                <p class="text-muted small">Perform your first AI skin scan to start building your diagnostic history.</p>
+                <a href="{{ url_for('scanner') }}" class="hero-btn mt-3">
+                    <i class="fa-solid fa-camera"></i>
+                    Start First Scan
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="text-center mt-5 d-flex justify-content-center gap-3">
+            <a href="{{ url_for('scanner') }}" class="hero-btn">
+                <i class="fa-solid fa-camera"></i>
+                Scan Again
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary px-4 py-2" style="border-radius: 30px;">
+                <i class="fa-solid fa-chart-pie me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

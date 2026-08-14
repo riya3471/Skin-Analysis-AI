@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Skiné{% endblock %}
+
+{% block content %}
+
+<!-- ================= HERO ================= -->
+
+<section class="hero-section">
+
+    <div class="container">
+
+        <div class="row align-items-center">
+
+            <!-- Left -->
+
+            <div class="col-lg-5">
+
+                <span class="hero-tag">
+                    AI Skin Analysis
+                </span>
+
+                <h1>
+                    Understand <br>
+                    your skin.
+                </h1>
+
+                <h2>
+                    Care Better.
+                </h2>
+
+                <p class="hero-text">
+                    Our AI technology analyzes your skin and helps you discover
+                    what it needs to stay healthy, radiant and naturally glowing.
+                </p>
+                <a href="{{ url_for('login') }}" class="hero-btn">
+
+    <i class="fa-solid fa-right-to-bracket"></i>
+
+    Let's Start
+
+    <i class="fa-solid fa-arrow-right"></i>
+
+</a>
+
+
+            </div>
+
+            <!-- Right -->
+
+            <div class="col-lg-7 text-center">
+
+                <img src="{{ url_for('static', filename='images/hero.png') }}"
+                     class="hero-img"
+                     alt="Skin Analysis">
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= QUICK SKIN CHECK ================= -->
+
+<section class="quick-check">
+
+    <div class="container">
+
+        <div class="section-title">
+
+            <span>Quick Skin Check</span>
+
+            <h2>Get an overview of your skin in seconds.</h2>
+
+            <p>
+                AI instantly analyzes your skin and checks for common concerns.
+            </p>
+
+        </div>
+
+        <div class="row text-center">
+
+            <div class="col-md-3">
+
+                <div class="analysis-card">
+
+                    <div class="analysis-icon">
+                        💧
+                    </div>
+
+                    <h4>Hydration</h4>
+
+                    <p>
+                        Checks your skin moisture level.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="analysis-card">
+
+                    <div class="analysis-icon">
+                        🌊
+                    </div>
+
+                    <h4>Texture</h4>
+
+                    <p>
+                        Detects roughness and smoothness.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="analysis-card">
+
+                    <div class="analysis-icon">
+                        🫧
+                    </div>
+
+                    <h4>Pores</h4>
+
+                    <p>
+                        Finds enlarged or clogged pores.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="analysis-card">
+
+                    <div class="analysis-icon">
+                        ☀️
+                    </div>
+
+                    <h4>Dark Spots</h4>
+
+                    <p>
+                        Detects pigmentation and dark spots.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= INFO CARDS ================= -->
+
+<section class="info-section">
+
+    <div class="container">
+
+        <div class="row g-4">
+
+            <!-- Card 1 -->
+
+            <div class="col-lg-4">
+
+                <div class="info-card">
+
+                    <h3>How It Works</h3>
+
+                    <div class="info-item">
+
+                        <div class="icon-circle">
+                            📷
+                        </div>
+
+                        <div>
+
+                            <h5>Take a Selfie</h5>
+
+                            <p>
+                                Capture a clear photo using your webcam or upload an image.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="info-item">
+
+                        <div class="icon-circle">
+                            ✨
+                        </div>
+
+                        <div>
+
+                            <h5>AI Analysis</h5>
+
+                            <p>
+                                Our AI scans your skin for acne, pores, pigmentation and more.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="info-item">
+
+                        <div class="icon-circle">
+                            📄
+                        </div>
+
+                        <div>
+
+                            <h5>View Results</h5>
+
+                            <p>
+                                Receive easy-to-understand skin reports instantly.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Card 2 -->
+
+            <div class="col-lg-4">
+
+                <div class="info-card">
+
+                    <h3>What You'll Get</h3>
+
+                    <ul class="benefits">
+
+                        <li>✔ Skin concern detection</li>
+
+                        <li>✔ Personalized skincare tips</li>
+
+                        <li>✔ Easy-to-read report</li>
+
+                        <li>✔ Track your progress</li>
+
+                        <li>✔ AI confidence score</li>
+
+                    </ul>
+
+                    <div class="face-icon">
+
+                        😊
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Card 3 -->
+
+            <div class="col-lg-4">
+
+                <div class="info-card">
+
+                    <h3>Skin Concerns We Check</h3>
+
+                    <div class="concern">
+
+                        <span>🌸</span>
+
+                        <div>
+
+                            <strong>Acne</strong>
+
+                            <p>Detects pimples and breakouts.</p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="concern">
+
+                        <span>☀️</span>
+
+                        <div>
+
+                            <strong>Dark Spots</strong>
+
+                            <p>Identifies pigmentation issues.</p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="concern">
+
+                        <span>🧴</span>
+
+                        <div>
+
+                            <strong>Uneven Tone</strong>
+
+                            <p>Analyzes skin tone consistency.</p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="concern">
+
+                        <span>🌿</span>
+
+                        <div>
+
+                            <strong>Fine Lines</strong>
+
+                            <p>Detects early signs of aging.</p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= WHY SKINÉ ================= -->
+
+<section class="why-section">
+
+    <div class="container">
+
+        <div class="section-title">
+
+            <span>Why Skiné?</span>
+
+            <h2>Simple, Private & AI Powered</h2>
+
+            <p>
+                Built to make skincare analysis easy, accurate and accessible.
+            </p>
+
+        </div>
+
+        <div class="row g-4">
+
+            <div class="col-md-3">
+
+                <div class="why-card">
+
+                    <div class="why-icon">
+                        🤖
+                    </div>
+
+                    <h4>AI Powered</h4>
+
+                    <p>
+                        Advanced AI detects skin concerns with high accuracy.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="why-card">
+
+                    <div class="why-icon">
+                        🔒
+                    </div>
+
+                    <h4>Private & Secure</h4>
+
+                    <p>
+                        Your photos are processed securely and never shared.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="why-card">
+
+                    <div class="why-icon">
+                        🌿
+                    </div>
+
+                    <h4>Natural Care</h4>
+
+                    <p>
+                        Personalized skincare suggestions for healthier skin.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="why-card">
+
+                    <div class="why-icon">
+                        ⚡
+                    </div>
+
+                    <h4>Fast Results</h4>
+
+                    <p>
+                        Get your complete skin report within seconds.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+<!-- ================= CTA ================= -->
+
+<section class="cta-section">
+
+    <div class="container">
+
+        <div class="cta-box">
+
+            <h2>Ready to discover your skin?</h2>
+
+            <p>
+                Start your AI skin analysis today and receive personalized skincare insights.
+            </p>
+            <a href="{{ url_for('login') }}" class="hero-btn">
+    Let's Start
+</a>
+
+          
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}
