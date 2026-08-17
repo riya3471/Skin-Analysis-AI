@@ -30,10 +30,44 @@ def analyze_skin_image(image_path, output_dir=None):
     os.makedirs(output_dir, exist_ok=True)
 
     # =====================================================
-    # 2. FACE DETECTION (CROSS-VERSION ROBUST)
+    # 2. IMAGE QUALITY & DARKNESS/BLANK VALIDATION
     # =====================================================
 
     h_img, w_img = image.shape[:2]
+    if h_img < 50 or w_img < 50:
+        return {
+            "success": False,
+            "message": "Image resolution is too low for skin analysis."
+        }
+
+    gray_full = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    mean_brightness = float(np.mean(gray_full))
+    std_contrast = float(np.std(gray_full))
+
+    # Check if camera is covered or image is too dark (e.g., covered with finger/black)
+    if mean_brightness < 28:
+        return {
+            "success": False,
+            "message": "Image is too dark or the camera is covered. Please ensure good lighting and uncover the lens."
+        }
+
+    # Check if image is overexposed or solid color/blank
+    if mean_brightness > 245 and std_contrast < 15:
+        return {
+            "success": False,
+            "message": "Image is completely overexposed or white. Please adjust camera exposure and lighting."
+        }
+
+    if std_contrast < 10:
+        return {
+            "success": False,
+            "message": "Image appears blank or uniform. Please point the camera clearly at your face."
+        }
+
+    # =====================================================
+    # 3. FACE DETECTION & VALIDATION
+    # =====================================================
+
     face_box = None
 
     # Tier 1: Try Haar CascadeClassifier if supported by OpenCV build
@@ -43,8 +77,12 @@ def analyze_skin_image(image_path, output_dir=None):
             if hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
                 cascade_file = os.path.join(cv2.data.haarcascades, cascade_file)
             face_cascade = cv2.CascadeClassifier(cascade_file)
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(int(w_img * 0.2), int(h_img * 0.2)))
+            faces = face_cascade.detectMultiScale(
+                gray_full,
+                scaleFactor=1.1,
+                minNeighbors=4,
+                minSize=(int(w_img * 0.15), int(h_img * 0.15))
+            )
             if len(faces) > 0:
                 # Pick the largest detected face box
                 face_box = max(faces, key=lambda b: b[2] * b[3])
@@ -60,10 +98,10 @@ def analyze_skin_image(image_path, output_dir=None):
             valid_candidates = []
             for c in contours:
                 area = cv2.contourArea(c)
-                if area > (h_img * w_img * 0.05):
+                if area > (h_img * w_img * 0.06):
                     bx, by, bw, bh = cv2.boundingRect(c)
                     aspect = bh / max(1, bw)
-                    if 0.6 <= aspect <= 1.8:
+                    if 0.6 <= aspect <= 1.9:
                         valid_candidates.append((bx, by, bw, bh, area))
             if valid_candidates:
                 valid_candidates.sort(key=lambda x: x[4], reverse=True)
@@ -72,20 +110,26 @@ def analyze_skin_image(image_path, output_dir=None):
         except Exception:
             pass
 
-    # Tier 3: Centered portrait zone fallback
+    # If no face detected, reject scan
     if face_box is None:
-        crop_w = int(w_img * 0.70)
-        crop_h = int(h_img * 0.75)
-        x = max(0, int((w_img - crop_w) / 2))
-        y = max(0, int((h_img - crop_h) * 0.35))
-        face_box = (x, y, min(w_img - x, crop_w), min(h_img - y, crop_h))
+        return {
+            "success": False,
+            "message": "No face detected in the frame. Please look directly at the camera with your face clearly centered."
+        }
 
     x, y, w, h = face_box
+    face = image[y:y + h, x:x + w]
 
-    face = image[
-        y:y + h,
-        x:x + w
-    ]
+    # Verify skin tone presence inside the cropped face
+    face_ycrcb = cv2.cvtColor(face, cv2.COLOR_BGR2YCrCb)
+    face_skin_mask = cv2.inRange(face_ycrcb, np.array([0, 133, 77], dtype=np.uint8), np.array([255, 173, 127], dtype=np.uint8))
+    skin_pixel_ratio = float(np.count_nonzero(face_skin_mask)) / float(max(1, w * h))
+
+    if skin_pixel_ratio < 0.15:
+        return {
+            "success": False,
+            "message": "No skin tones detected in the face frame. Please ensure your face is clearly visible."
+        }
 
     face_crop_path = os.path.join(output_dir, "cropped_face.jpg")
     cv2.imwrite(face_crop_path, face)
