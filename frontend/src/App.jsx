@@ -26,7 +26,7 @@ export default function App() {
         <div className="app-layout d-flex flex-column min-vh-100">
           <Navbar />
           <Toast />
-          <main className="flex-grow-1">
+          <main style={{ marginTop: '110px', minHeight: '70vh' }}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/scanner" element={<Scanner />} />

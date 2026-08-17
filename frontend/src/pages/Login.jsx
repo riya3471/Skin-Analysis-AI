@@ -6,7 +6,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -15,31 +15,27 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     const res = await login(email, password);
-    setIsSubmitting(false);
     if (res.success) {
       navigate(from, { replace: true });
     }
   };
 
-  const fillDemo = () => {
-    setEmail('user@skinai.com');
-    setPassword('password123');
-  };
-
   return (
-    <section className="login-section py-5">
+    <section className="login-section">
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-lg-5 col-md-8">
-            <div className="p-4 p-md-5 bg-white rounded-4 shadow-sm border">
+            <div
+              className="login-card p-4 p-md-5 shadow-sm"
+              style={{ borderRadius: '20px', background: '#fff', border: '1px solid var(--border)' }}
+            >
               <div className="text-center mb-4">
                 <span className="hero-tag">Welcome Back</span>
-                <h1 className="fw-bold mt-2" style={{ color: 'var(--green-dark, #1b3326)' }}>
+                <h1 className="login-title fw-bold" style={{ color: 'var(--green-dark)' }}>
                   Sign In
                 </h1>
-                <p className="small text-muted">
+                <p className="login-text small text-muted">
                   Access your skin health history, customized regimens, and biomarker timeline.
                 </p>
               </div>
@@ -49,32 +45,35 @@ export default function Login() {
                   <label className="form-label small fw-bold text-muted">Email Address</label>
                   <input
                     type="email"
+                    name="email"
                     className="form-control custom-input"
                     placeholder="name@example.com"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
                     required
                   />
                 </div>
 
                 <div className="mb-3">
                   <label className="form-label small fw-bold text-muted">Password</label>
-                  <div className="position-relative">
+                  <div className="password-toggle-wrapper">
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      className="form-control custom-input pe-5"
+                      name="password"
+                      id="loginPassword"
+                      className="form-control custom-input"
                       placeholder="••••••••"
+                      autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
                       required
                     />
                     <button
                       type="button"
+                      className="toggle-password-btn"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="btn position-absolute top-50 end-0 translate-middle-y border-0 text-muted"
-                      tabIndex={-1}
+                      aria-label="Toggle password visibility"
                     >
                       <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -83,29 +82,39 @@ export default function Login() {
 
                 <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                   <div className="form-check">
-                    <input className="form-check-input" type="checkbox" id="remember" />
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="remember"
+                      name="remember"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                    />
                     <label className="form-check-label small text-muted" htmlFor="remember">
                       Remember me
                     </label>
                   </div>
-                  <button
-                    type="button"
-                    onClick={fillDemo}
-                    className="btn btn-sm btn-link p-0 text-decoration-none small text-muted"
+                  <span
+                    className="small text-muted"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      setEmail('user@skinai.com');
+                      setPassword('password123');
+                    }}
                   >
-                    <i className="fa-solid fa-key text-warning me-1"></i> Fill Demo Credentials
-                  </button>
+                    <i className="fa-solid fa-key me-1 text-warning"></i> Demo: user@skinai.com / password123
+                  </span>
                 </div>
 
-                <button type="submit" disabled={isSubmitting} className="hero-btn w-100 justify-content-center py-3">
+                <button type="submit" className="hero-btn w-100 justify-content-center">
                   <i className="fa-solid fa-right-to-bracket me-2"></i>
-                  {isSubmitting ? 'Signing In...' : 'Sign In'}
+                  Sign In
                 </button>
 
                 <div className="text-center mt-4">
                   <p className="mb-0 small text-muted">
                     Don't have an account?{' '}
-                    <Link to="/register" className="fw-bold text-success text-decoration-none">
+                    <Link to="/register" className="fw-bold" style={{ color: 'var(--green)' }}>
                       Create one now
                     </Link>
                   </p>

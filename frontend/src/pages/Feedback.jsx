@@ -7,65 +7,55 @@ export default function Feedback() {
   const [rating, setRating] = useState(5);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [reviews, setReviews] = useState([
+
+  const [feedbacks, setFeedbacks] = useState([
     {
       id: 1,
       user_name: 'Aastha Sharma',
-      rating: 5,
       stars: '⭐⭐⭐⭐⭐',
       message: 'The AI skin scan was remarkably fast and accurate! The recommended Niacinamide routine really helped with my oily T-zone.',
-      display_date: '17 Aug 2026',
     },
     {
       id: 2,
-      user_name: 'David Chen',
-      rating: 5,
+      user_name: 'Skiné User',
       stars: '⭐⭐⭐⭐⭐',
       message: 'Clean interface and the morning/night routine recommendations are very structured and practical.',
-      display_date: '15 Aug 2026',
     },
     {
       id: 3,
-      user_name: 'Elena Rostova',
-      rating: 4,
+      user_name: 'Skiné User',
       stars: '⭐⭐⭐⭐',
       message: 'Loved the computer vision face region analysis. Very intuitive skin report!',
-      display_date: '12 Aug 2026',
     },
   ]);
 
   useEffect(() => {
-    const fetchReviews = async () => {
+    const fetchFeedbacks = async () => {
       try {
         const res = await api.get('/api/feedback');
         if (res.data && res.data.feedbacks) {
-          setReviews(res.data.feedbacks);
+          setFeedbacks(res.data.feedbacks);
         }
       } catch (err) {}
     };
-    fetchReviews();
+    fetchFeedbacks();
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message.trim()) {
-      addToast('Please write a message before submitting.', 'warning');
-      return;
-    }
+    if (!message.trim()) return;
 
     setIsSubmitting(true);
     try {
       await api.post('/feedback', { rating, message });
-      setReviews([
+      setFeedbacks([
         {
           id: Date.now(),
           user_name: 'You',
-          rating,
           stars: '⭐'.repeat(rating),
-          message,
-          display_date: 'Just now',
+          message: message.trim(),
         },
-        ...reviews,
+        ...feedbacks,
       ]);
       setMessage('');
       addToast('Thank you! Your feedback has been submitted.', 'success');
@@ -77,45 +67,48 @@ export default function Feedback() {
   };
 
   return (
-    <div className="feedback-page py-5">
+    <section className="feedback-section">
       <div className="container">
+        {/* Heading */}
+        <div className="text-center mb-5">
+          <span className="hero-tag">Community Voices</span>
+          <h1 className="feedback-title">Share Your Experience</h1>
+          <p className="feedback-text">
+            Your reviews help us refine our Computer Vision accuracy and expand personalized skincare recommendations.
+          </p>
+        </div>
+
         <div className="row g-5">
-          {/* Submit Feedback */}
+          {/* Feedback Form */}
           <div className="col-lg-5">
-            <div className="p-4 p-md-5 bg-white rounded-4 shadow-sm border sticky-top" style={{ top: '100px' }}>
-              <span className="hero-tag">Share Your Experience</span>
-              <h2 className="fw-bold mt-2" style={{ color: 'var(--green-dark, #1b3326)' }}>
-                Leave Feedback
-              </h2>
-              <p className="text-muted small mb-4">
-                Help us refine our biomarker algorithms and routine synthesis engine.
-              </p>
+            <div className="feedback-card p-4 p-md-5 shadow-sm" style={{ borderRadius: '20px' }}>
+              <h3 className="mb-3 fw-bold" style={{ color: 'var(--green-dark)' }}>
+                <i className="fa-solid fa-pen-nib me-2"></i> Leave a Review
+              </h3>
+              <p className="small text-muted mb-4">How was your AI skin analysis experience?</p>
 
               <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold text-muted">Rating</label>
-                  <div className="d-flex gap-2 align-items-center">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        type="button"
-                        key={star}
-                        onClick={() => setRating(star)}
-                        className="btn p-0 border-0 fs-3"
-                        style={{ color: star <= rating ? '#ffc107' : '#e2e8f0' }}
-                      >
-                        ★
-                      </button>
+                <div className="mb-4">
+                  <label className="form-label small fw-bold text-muted d-block">Rating</label>
+                  <div className="rating-stars d-flex gap-2 fs-4 text-warning" id="starContainer" style={{ cursor: 'pointer' }}>
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <i
+                        key={val}
+                        className={`${val <= rating ? 'fa-solid' : 'fa-regular'} fa-star star-btn`}
+                        onClick={() => setRating(val)}
+                      ></i>
                     ))}
-                    <span className="small text-muted ms-2 fw-semibold">{rating} / 5 Stars</span>
                   </div>
+                  <input type="hidden" name="rating" id="ratingInput" value={rating} />
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label small fw-bold text-muted">Your Review</label>
+                  <label className="form-label small fw-bold text-muted">Feedback & Comments</label>
                   <textarea
-                    rows="4"
+                    name="message"
                     className="form-control custom-input"
-                    placeholder="How was your AI skin analysis experience?"
+                    rows="4"
+                    placeholder="Tell us about the accuracy of your skin report, routines, or feature suggestions..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     required
@@ -123,35 +116,53 @@ export default function Feedback() {
                 </div>
 
                 <button type="submit" disabled={isSubmitting} className="hero-btn w-100 justify-content-center">
-                  {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                  <i className="fa-solid fa-paper-plane me-2"></i>
+                  {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
                 </button>
               </form>
             </div>
           </div>
 
-          {/* Community Reviews Feed */}
+          {/* User Reviews List */}
           <div className="col-lg-7">
-            <h3 className="fw-bold mb-4" style={{ color: 'var(--green-dark, #1b3326)' }}>
-              Community Testimonials
-            </h3>
+            <div className="feedback-card p-4 p-md-5 shadow-sm" style={{ borderRadius: '20px' }}>
+              <h3 className="mb-4 fw-bold" style={{ color: 'var(--green-dark)' }}>
+                <i className="fa-solid fa-comments me-2"></i> Verified User Reviews
+              </h3>
 
-            <div className="d-flex flex-column gap-3">
-              {reviews.map((rev) => (
-                <div key={rev.id} className="p-4 bg-white rounded-4 shadow-sm border">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <div className="fw-bold text-dark">{rev.user_name || 'Anonymous User'}</div>
-                    <span className="text-warning fs-6">{rev.stars || '⭐⭐⭐⭐⭐'}</span>
-                  </div>
-                  <p className="small text-muted mb-2">{rev.message}</p>
-                  <span className="small text-muted" style={{ fontSize: '0.75rem' }}>
-                    {rev.display_date || 'Verified Member'}
-                  </span>
-                </div>
-              ))}
+              <div className="d-flex flex-column gap-3" style={{ maxHeight: '520px', overflowY: 'auto', paddingRight: '5px' }}>
+                {feedbacks && feedbacks.length > 0 ? (
+                  feedbacks.map((item) => (
+                    <div
+                      key={item.id}
+                      className="review-card p-3 border rounded shadow-xs"
+                      style={{ background: '#fff', borderRadius: '14px' }}
+                    >
+                      <div className="review-header d-flex justify-content-between align-items-center mb-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <div
+                            className="rounded-circle d-flex align-items-center justify-content-center"
+                            style={{ width: '36px', height: '36px', background: '#e8e3d8', color: 'var(--green)', fontSize: '16px' }}
+                          >
+                            <i className="fa-solid fa-user"></i>
+                          </div>
+                          <h5 className="mb-0 fw-bold" style={{ fontSize: '1.05rem' }}>
+                            {item.user_name || item.name || 'Skiné User'}
+                          </h5>
+                        </div>
+                        <span className="text-warning fs-6">{item.stars || item.rating}</span>
+                      </div>
+                      <p className="mb-0 text-muted small ps-5">"{item.message}"</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted">No reviews yet. Be the first to share your experience!</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

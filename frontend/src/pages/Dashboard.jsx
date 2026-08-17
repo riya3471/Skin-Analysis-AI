@@ -28,48 +28,72 @@ ChartJS.register(
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    total_scans: 1,
-    avg_score: 91.5,
+  const [totalScans, setTotalScans] = useState(1);
+  const [skinType, setSkinType] = useState('Combination');
+  const [latestScan, setLatestScan] = useState({
+    id: 1,
     skin_type: 'Combination',
-    latest_scan: null,
+    overall_condition: 'Mild T-Zone Sebum & Healthy Texture',
+    overall_score: 91.5,
+    oiliness_level: 'Moderate',
+    dryness_level: 'Low',
+    texture_level: 'Smooth',
+    redness_level: 'Low',
+    pigmentation_level: 'Low',
+    display_date: '17 Aug 2026',
   });
-  const [chartData, setChartData] = useState({
-    labels: ['10 Aug', '12 Aug', '14 Aug', '16 Aug', '17 Aug'],
-    scores: [84, 86, 88, 89, 92],
-  });
+
+  const [chartLabels, setChartLabels] = useState(['10 Aug', '12 Aug', '14 Aug', '16 Aug', '17 Aug']);
+  const [chartScores, setChartScores] = useState([84, 86, 88, 89, 92]);
+
+  const [tips, setTips] = useState([
+    'Apply broad-spectrum SPF 50 sunscreen 15 minutes before UV exposure.',
+    'Incorporate 2-3 drops of Niacinamide serum to regulate T-zone oiliness.',
+    'Drink at least 2.5L of water daily to maintain cellular skin barrier hydration.',
+    'Double cleanse at night to gently dissolve sunscreen and environmental micro-pollutants.',
+  ]);
+
+  const [checkedHabits, setCheckedHabits] = useState({});
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
         const res = await api.get('/api/dashboard');
         if (res.data) {
-          setStats(res.data.stats || stats);
-          if (res.data.chart_labels && res.data.chart_scores) {
-            setChartData({
-              labels: res.data.chart_labels,
-              scores: res.data.chart_scores,
-            });
-          }
+          if (res.data.total_scans !== undefined) setTotalScans(res.data.total_scans);
+          if (res.data.skin_type) setSkinType(res.data.skin_type);
+          if (res.data.latest_scan) setLatestScan(res.data.latest_scan);
+          if (res.data.chart_labels) setChartLabels(res.data.chart_labels);
+          if (res.data.chart_scores) setChartScores(res.data.chart_scores);
+          if (res.data.tips) setTips(res.data.tips);
         }
-      } catch (err) {
-        // Use default client simulated dashboard stats
-      }
+      } catch (err) {}
     };
     fetchDashboard();
   }, []);
 
-  const chartConfig = {
-    labels: chartData.labels,
+  const toggleHabit = (idx) => {
+    setCheckedHabits((prev) => ({
+      ...prev,
+      [idx]: !prev[idx],
+    }));
+  };
+
+  const completedHabitsCount = Object.values(checkedHabits).filter(Boolean).length;
+  const habitPct = tips.length > 0 ? (completedHabitsCount / tips.length) * 100 : 0;
+
+  const chartData = {
+    labels: chartLabels,
     datasets: [
       {
         label: 'Skin Health Score (%)',
-        data: chartData.scores,
+        data: chartScores,
+        borderColor: '#707B57',
+        backgroundColor: 'rgba(112, 123, 87, 0.15)',
+        borderWidth: 3,
         fill: true,
-        borderColor: '#264635',
-        backgroundColor: 'rgba(38, 70, 53, 0.08)',
-        tension: 0.4,
-        pointBackgroundColor: '#264635',
+        tension: 0.35,
+        pointBackgroundColor: '#596547',
         pointRadius: 5,
       },
     ],
@@ -80,124 +104,317 @@ export default function Dashboard() {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: {
-        backgroundColor: 'rgba(38, 70, 53, 0.9)',
-        padding: 10,
-        cornerRadius: 8,
-      },
     },
     scales: {
       y: {
-        min: 60,
+        min: 40,
         max: 100,
-        grid: { color: 'rgba(0,0,0,0.05)' },
-      },
-      x: {
-        grid: { display: false },
+        ticks: { stepSize: 10 },
       },
     },
   };
 
   return (
-    <div className="dashboard-page py-5">
+    <section className="dashboard-section">
       <div className="container">
-        {/* Welcome Header */}
-        <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-          <div>
-            <span className="hero-tag">Biomarker Timeline</span>
-            <h1 className="fw-bold mt-1 mb-0" style={{ color: 'var(--green-dark, #1b3326)' }}>
-              Welcome, {user?.full_name?.split(' ')[0] || 'Skiné Member'}
-            </h1>
-            <p className="text-muted small mb-0">Here is your live skin health trajectory and daily recommendations.</p>
-          </div>
-          <Link to="/scanner" className="hero-btn">
-            <i className="fa-solid fa-camera me-2"></i> New Skin Scan
-          </Link>
+        {/* Heading */}
+        <div className="text-center mb-5">
+          <span className="hero-tag">AI Skin Intelligence</span>
+          <h1 className="dashboard-title">Your Skin Dashboard</h1>
+          <p className="dashboard-text">
+            Track your skin biomarkers, routine adherence, and long-term health progression.
+          </p>
         </div>
 
-        {/* Top Metric Cards */}
+        {/* Top Overview Cards */}
         <div className="row g-4 mb-4">
-          <div className="col-md-4">
-            <div className="p-4 bg-white rounded-4 shadow-sm border h-100">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="small text-muted fw-bold text-uppercase">Total Scans</span>
-                <i className="fa-solid fa-camera-retro text-success fs-4"></i>
+          {/* Last Scan */}
+          <div className="col-lg-3 col-md-6">
+            <div className="dashboard-card h-100 shadow-sm" style={{ borderRadius: '18px' }}>
+              <div className="dashboard-icon">
+                <i className="fa-solid fa-calendar-days"></i>
               </div>
-              <h2 className="fw-bold mb-0 text-success">{stats.total_scans || 1}</h2>
-              <span className="small text-muted" style={{ fontSize: '0.75rem' }}>Biomarker checkpoints</span>
+              <h3>Last Scan Date</h3>
+              <h2 style={{ fontSize: '1.6rem' }}>{latestScan ? latestScan.display_date : 'Not Scanned'}</h2>
+              <p>{latestScan ? 'Analysis completed' : 'Run your first scan today'}</p>
             </div>
           </div>
 
-          <div className="col-md-4">
-            <div className="p-4 bg-white rounded-4 shadow-sm border h-100">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="small text-muted fw-bold text-uppercase">Average Health Score</span>
-                <i className="fa-solid fa-heart-pulse text-primary fs-4"></i>
+          {/* Total Scans */}
+          <div className="col-lg-3 col-md-6">
+            <div className="dashboard-card h-100 shadow-sm" style={{ borderRadius: '18px' }}>
+              <div className="dashboard-icon">
+                <i className="fa-solid fa-camera"></i>
               </div>
-              <h2 className="fw-bold mb-0" style={{ color: 'var(--green-dark, #1b3326)' }}>
-                {stats.avg_score || 91.5}%
+              <h3>Total Scans</h3>
+              <h2 style={{ fontSize: '1.6rem' }}>{totalScans}</h2>
+              <p>AI computer vision scans recorded.</p>
+            </div>
+          </div>
+
+          {/* Current Skin Type */}
+          <div className="col-lg-3 col-md-6">
+            <div className="dashboard-card h-100 shadow-sm" style={{ borderRadius: '18px' }}>
+              <div className="dashboard-icon">
+                <i className="fa-solid fa-droplet"></i>
+              </div>
+              <h3>Current Skin Type</h3>
+              <h2 style={{ fontSize: '1.5rem' }} className={latestScan ? 'text-success' : 'text-muted'}>
+                {skinType}
               </h2>
-              <span className="small text-success" style={{ fontSize: '0.75rem' }}>
-                <i className="fa-solid fa-arrow-trend-up me-1"></i> +4.2% over last 7 days
-              </span>
+              <p>{latestScan ? 'Based on facial biomarker analysis.' : 'Awaiting initial scan.'}</p>
             </div>
           </div>
 
-          <div className="col-md-4">
-            <div className="p-4 bg-white rounded-4 shadow-sm border h-100">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="small text-muted fw-bold text-uppercase">Baseline Skin Type</span>
-                <i className="fa-solid fa-droplet text-warning fs-4"></i>
+          {/* Skin Health Score */}
+          <div className="col-lg-3 col-md-6">
+            <div className="dashboard-card h-100 shadow-sm" style={{ borderRadius: '18px' }}>
+              <div className="dashboard-icon">
+                <i className="fa-solid fa-heart-pulse"></i>
               </div>
-              <h2 className="fw-bold mb-0 text-dark">{stats.skin_type || 'Combination'}</h2>
-              <span className="small text-muted" style={{ fontSize: '0.75rem' }}>Balanced hydration profile</span>
+              <h3>Health Score</h3>
+              <h2 style={{ fontSize: '1.6rem' }}>
+                {latestScan && latestScan.overall_score ? `${latestScan.overall_score}%` : '--'}
+              </h2>
+              <p>{latestScan ? latestScan.overall_condition : 'Scan required'}</p>
             </div>
           </div>
         </div>
 
-        {/* Chart & Daily Tips */}
-        <div className="row g-4 mb-4">
-          <div className="col-lg-8">
-            <div className="p-4 bg-white rounded-4 shadow-sm border h-100">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="fw-bold mb-0" style={{ color: 'var(--green-dark, #1b3326)' }}>
-                  Skin Health Score Progress
-                </h5>
-                <span className="badge bg-light text-muted small">Historical Trend</span>
+        {/* Skin Characteristics Section */}
+        <div className="row g-4 mt-2 mb-4">
+          <div className="col-lg-12">
+            <h3 className="mb-3 fw-bold" style={{ color: 'var(--green-dark)' }}>
+              <i className="fa-solid fa-dna me-2"></i> Current Skin Characteristics
+            </h3>
+          </div>
+
+          <div className="col-lg-2 col-md-4 col-6">
+            <div className="dashboard-card small-card text-center p-3 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="dashboard-icon mx-auto mb-2" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="fa-solid fa-droplet text-warning"></i>
               </div>
-              <div style={{ height: '280px' }}>
-                <Line data={chartConfig} options={chartOptions} />
-              </div>
+              <h4>Oiliness</h4>
+              <h3 className="fw-bold">{latestScan ? latestScan.oiliness_level : '--'}</h3>
             </div>
           </div>
 
-          <div className="col-lg-4">
-            <div className="p-4 bg-white rounded-4 shadow-sm border h-100">
-              <h5 className="fw-bold mb-3" style={{ color: 'var(--green-dark, #1b3326)' }}>
-                <i className="fa-solid fa-sparkles text-warning me-2"></i> Daily Skincare Tips
-              </h5>
-              <div className="d-flex flex-column gap-3 small text-muted">
-                <div className="d-flex gap-2">
-                  <i className="fa-solid fa-sun text-warning mt-1"></i>
-                  <span>Apply broad-spectrum SPF 50 sunscreen 15 minutes before UV exposure.</span>
-                </div>
-                <div className="d-flex gap-2">
-                  <i className="fa-solid fa-bottle-droplet text-primary mt-1"></i>
-                  <span>Incorporate 2-3 drops of Niacinamide serum to regulate T-zone oiliness.</span>
-                </div>
-                <div className="d-flex gap-2">
-                  <i className="fa-solid fa-glass-water text-info mt-1"></i>
-                  <span>Drink at least 2.5L of water daily to maintain cellular skin barrier hydration.</span>
-                </div>
+          <div className="col-lg-2 col-md-4 col-6">
+            <div className="dashboard-card small-card text-center p-3 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="dashboard-icon mx-auto mb-2" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="fa-solid fa-water text-info"></i>
               </div>
-              <hr />
-              <Link to="/profile" className="btn btn-sm btn-outline-success w-100 rounded-pill">
-                Update Skin Profile
-              </Link>
+              <h4>Dryness</h4>
+              <h3 className="fw-bold">{latestScan ? latestScan.dryness_level : '--'}</h3>
+            </div>
+          </div>
+
+          <div className="col-lg-2 col-md-4 col-6">
+            <div className="dashboard-card small-card text-center p-3 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="dashboard-icon mx-auto mb-2" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="fa-solid fa-gem text-secondary"></i>
+              </div>
+              <h4>Texture</h4>
+              <h3 className="fw-bold">{latestScan ? latestScan.texture_level : '--'}</h3>
+            </div>
+          </div>
+
+          <div className="col-lg-2 col-md-4 col-6">
+            <div className="dashboard-card small-card text-center p-3 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="dashboard-icon mx-auto mb-2" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="fa-solid fa-heart text-danger"></i>
+              </div>
+              <h4>Redness</h4>
+              <h3 className="fw-bold">{latestScan ? latestScan.redness_level : '--'}</h3>
+            </div>
+          </div>
+
+          <div className="col-lg-2 col-md-4 col-6">
+            <div className="dashboard-card small-card text-center p-3 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="dashboard-icon mx-auto mb-2" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="fa-solid fa-circle text-dark"></i>
+              </div>
+              <h4>Pigmentation</h4>
+              <h3 className="fw-bold">{latestScan ? latestScan.pigmentation_level : '--'}</h3>
+            </div>
+          </div>
+
+          <div className="col-lg-2 col-md-4 col-6">
+            <div className="dashboard-card small-card text-center p-3 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="dashboard-icon mx-auto mb-2" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="fa-solid fa-sparkles text-success"></i>
+              </div>
+              <h4>Overall</h4>
+              <h3 className={`fw-bold ${latestScan ? 'text-success' : 'text-muted'}`}>
+                {latestScan ? latestScan.skin_type : 'Pending'}
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Chart & Tips Row */}
+        <div className="row g-4 mt-2 mb-4">
+          {/* Health Trajectory Chart */}
+          <div className="col-lg-8">
+            <div className="dashboard-card p-4 h-100 shadow-sm" style={{ borderRadius: '20px' }}>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h3 className="mb-0 fw-bold" style={{ color: 'var(--green-dark)' }}>
+                    <i className="fa-solid fa-chart-line me-2"></i> Skin Health Trajectory
+                  </h3>
+                  <span className="small text-muted">Biomarker score progression over time</span>
+                </div>
+                {totalScans > 0 ? (
+                  <span className="badge bg-success-subtle text-success px-3 py-1 rounded-pill small">
+                    <i className="fa-solid fa-arrow-trend-up me-1"></i> Active Tracking
+                  </span>
+                ) : (
+                  <span className="badge bg-light text-muted border px-3 py-1 rounded-pill small">Awaiting Scans</span>
+                )}
+              </div>
+
+              {totalScans > 0 ? (
+                <div style={{ position: 'relative', height: '260px', width: '100%' }}>
+                  <Line data={chartData} options={chartOptions} />
+                </div>
+              ) : (
+                <div
+                  className="text-center py-5 d-flex flex-column align-items-center justify-content-center"
+                  style={{ minHeight: '240px', background: 'rgba(112, 123, 87, 0.04)', borderRadius: '16px' }}
+                >
+                  <div className="mb-3 text-muted" style={{ fontSize: '40px', opacity: 0.6 }}>
+                    <i className="fa-solid fa-chart-area"></i>
+                  </div>
+                  <h5 className="fw-bold text-muted mb-1">No Scan Progression Recorded Yet</h5>
+                  <p className="small text-muted mb-3" style={{ maxWidth: '380px' }}>
+                    Complete your first AI facial scan to visualize your health score, hydration, and lipid balance trajectory over time.
+                  </p>
+                  <Link to="/scanner" className="hero-btn py-2 px-4" style={{ fontSize: '0.9rem' }}>
+                    <i className="fa-solid fa-camera me-1"></i> Start First Scan
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Personalized Daily Tips with Interactive Habit Tracker */}
+          <div className="col-lg-4">
+            <div className="dashboard-card p-4 h-100 shadow-sm" style={{ borderRadius: '20px' }}>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h3 className="mb-0 fw-bold" style={{ color: 'var(--green-dark)', fontSize: '20px' }}>
+                  <i className="fa-solid fa-sun-plant-wilt me-2"></i> Daily Habits
+                </h3>
+                <span
+                  id="habitProgressBadge"
+                  className="badge px-2 py-1"
+                  style={{ background: 'rgba(112, 123, 87, 0.15)', color: 'var(--green-dark)' }}
+                >
+                  {completedHabitsCount}/{tips.length} Done
+                </span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="progress mb-3" style={{ height: '6px', background: '#e8e3d8', borderRadius: '10px' }}>
+                <div
+                  id="habitProgressBar"
+                  className="progress-bar"
+                  role="progressbar"
+                  style={{ width: `${habitPct}%`, background: 'var(--green)', transition: 'width 0.3s ease' }}
+                ></div>
+              </div>
+
+              <ul className="tips-list ps-0 mb-3" style={{ listStyle: 'none' }}>
+                {tips.map((tip, idx) => (
+                  <li
+                    key={idx}
+                    className={`py-2 d-flex align-items-start gap-2 border-bottom routine-check-item ${
+                      checkedHabits[idx] ? 'completed' : ''
+                    }`}
+                    onClick={() => toggleHabit(idx)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <input
+                      type="checkbox"
+                      className="form-check-input mt-1 habit-checkbox"
+                      checked={!!checkedHabits[idx]}
+                      onChange={() => toggleHabit(idx)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span className={`small text-muted habit-text ${checkedHabits[idx] ? 'text-decoration-line-through' : ''}`}>
+                      {tip}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="p-3 rounded" style={{ background: 'rgba(112, 123, 87, 0.08)' }}>
+                <p className="small text-muted mb-0">
+                  <strong>Consistency Note:</strong> Re-scan every 2-3 weeks to measure the cellular renewal response.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Latest Report Details Card */}
+        <div className="row g-4 mt-2">
+          <div className="col-12">
+            <div className="dashboard-card p-4 shadow-sm" style={{ borderRadius: '20px' }}>
+              <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <h3 className="mb-0 fw-bold" style={{ color: 'var(--green-dark)' }}>
+                  <i className="fa-solid fa-file-waveform me-2"></i> Latest Diagnostic Summary
+                </h3>
+                {latestScan && (
+                  <Link to={`/result?id=${latestScan.id}`} className="btn btn-sm btn-outline-primary" style={{ borderRadius: '20px' }}>
+                    View Full Diagnostic Report <i className="fa-solid fa-arrow-right ms-1"></i>
+                  </Link>
+                )}
+              </div>
+
+              {latestScan ? (
+                <div className="row g-3">
+                  <div className="col-md-4">
+                    <div className="p-3 rounded border bg-light h-100">
+                      <span className="text-muted small d-block mb-1">Skin Type</span>
+                      <h5 className="fw-bold mb-0 text-success">{latestScan.skin_type}</h5>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="p-3 rounded border bg-light h-100">
+                      <span className="text-muted small d-block mb-1">Barrier Condition</span>
+                      <h5 className="fw-bold mb-0">{latestScan.overall_condition || 'Healthy & Balanced'}</h5>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="p-3 rounded border bg-light h-100">
+                      <span className="text-muted small d-block mb-1">Scan Timestamp</span>
+                      <h5 className="fw-bold mb-0 text-muted">{latestScan.display_date}</h5>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded border text-center bg-light">
+                  <p className="text-muted mb-3">No scans have been performed for your profile yet.</p>
+                  <Link to="/scanner" className="hero-btn">
+                    <i className="fa-solid fa-camera me-2"></i> Quick Scan
+                  </Link>
+                </div>
+              )}
+
+              {latestScan && (
+                <div className="mt-4 d-flex gap-2 flex-wrap">
+                  <Link to="/scanner" className="hero-btn">
+                    <i className="fa-solid fa-camera me-2"></i> Quick Scan
+                  </Link>
+                  <Link to="/history" className="btn btn-outline-primary px-4 py-2" style={{ borderRadius: '30px' }}>
+                    <i className="fa-solid fa-clock-rotate-left me-1"></i> View Scan History
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
