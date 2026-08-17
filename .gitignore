@@ -31,3 +31,7 @@ ENV/
 .vercel/
 .idea/
 .vscode/
+
+# Local frontend development folder
+frontend/
+
