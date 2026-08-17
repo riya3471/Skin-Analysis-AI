@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -508,12 +508,21 @@ def get_scan_by_id(scan_id, user_id=None):
         scan["possible_causes"] = possible_causes
         scan["lifestyle_suggestions"] = lifestyle_suggestions
 
-        # Format scan date
+        # Generate product/brand recommendations from loaded ingredients
+        try:
+            from models.recommendations import get_product_recommendations
+            scan["product_recommendations"] = get_product_recommendations(recommended_ingredients)
+        except Exception:
+            scan["product_recommendations"] = []
+
+        # Format scan date — DB stores UTC, convert to IST for display
         if scan.get("created_at"):
             try:
-                dt = datetime.strptime(scan["created_at"].split(".")[0], "%Y-%m-%d %H:%M:%S")
-                scan["formatted_date"] = dt.strftime("%d %b %Y, %I:%M %p")
-                scan["display_date"] = dt.strftime("%d %b %Y")
+                dt_utc = datetime.strptime(scan["created_at"].split(".")[0], "%Y-%m-%d %H:%M:%S")
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                dt_local = dt_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))  # IST
+                scan["formatted_date"] = dt_local.strftime("%d %b %Y, %I:%M %p")
+                scan["display_date"] = dt_local.strftime("%d %b %Y")
             except Exception:
                 scan["formatted_date"] = scan["created_at"]
                 scan["display_date"] = scan["created_at"]
@@ -565,9 +574,11 @@ def get_user_scans(user_id, limit=50):
         for r in rows:
             d = dict(r)
             try:
-                dt = datetime.strptime(d["created_at"].split(".")[0], "%Y-%m-%d %H:%M:%S")
-                d["display_date"] = dt.strftime("%d %b %Y")
-                d["display_time"] = dt.strftime("%I:%M %p")
+                dt_utc = datetime.strptime(d["created_at"].split(".")[0], "%Y-%m-%d %H:%M:%S")
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                dt_local = dt_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))  # IST
+                d["display_date"] = dt_local.strftime("%d %b %Y")
+                d["display_time"] = dt_local.strftime("%I:%M %p")
             except Exception:
                 d["display_date"] = d["created_at"]
                 d["display_time"] = ""
@@ -618,12 +629,16 @@ def get_user_notifications(user_id, limit=30):
         for r in rows:
             d = dict(r)
             try:
-                dt = datetime.strptime(d["created_at"].split(".")[0], "%Y-%m-%d %H:%M:%S")
-                now = datetime.now()
-                diff = now - dt
+                # DB timestamps are UTC (from CURRENT_TIMESTAMP)
+                dt_utc = datetime.strptime(d["created_at"].split(".")[0], "%Y-%m-%d %H:%M:%S")
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                now_utc = datetime.now(timezone.utc)
+                diff = now_utc - dt_utc
                 if diff.days == 0:
-                    if diff.seconds < 3600:
-                        mins = max(1, diff.seconds // 60)
+                    if diff.seconds < 60:
+                        d["time_ago"] = "Just now"
+                    elif diff.seconds < 3600:
+                        mins = diff.seconds // 60
                         d["time_ago"] = f"{mins} mins ago"
                     else:
                         hours = diff.seconds // 3600
@@ -631,7 +646,8 @@ def get_user_notifications(user_id, limit=30):
                 elif diff.days == 1:
                     d["time_ago"] = "Yesterday"
                 else:
-                    d["time_ago"] = dt.strftime("%d %b %Y")
+                    dt_local = dt_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))
+                    d["time_ago"] = dt_local.strftime("%d %b %Y")
             except Exception:
                 d["time_ago"] = d["created_at"]
             results.append(d)
@@ -728,8 +744,10 @@ def get_admin_dashboard_data():
         for r in act_rows:
             d = dict(r)
             try:
-                dt = datetime.strptime(d["date"].split(".")[0], "%Y-%m-%d %H:%M:%S")
-                d["date"] = dt.strftime("%d %b %Y, %I:%M %p")
+                dt_utc = datetime.strptime(d["date"].split(".")[0], "%Y-%m-%d %H:%M:%S")
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                dt_local = dt_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))  # IST
+                d["date"] = dt_local.strftime("%d %b %Y, %I:%M %p")
             except Exception:
                 pass
             activities.append(d)

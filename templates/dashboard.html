@@ -19,49 +19,51 @@
         <div class="row g-4 mb-4">
             <!-- Last Scan -->
             <div class="col-lg-3 col-md-6">
-                <div class="dashboard-card h-100">
+                <div class="dashboard-card h-100 shadow-sm" style="border-radius: 18px;">
                     <div class="dashboard-icon">
                         <i class="fa-solid fa-calendar-days"></i>
                     </div>
                     <h3>Last Scan Date</h3>
-                    <h2>{{ latest_scan.display_date if latest_scan else 'Not Scanned' }}</h2>
+                    <h2 style="font-size: 1.6rem;">{{ latest_scan.display_date if latest_scan else 'Not Scanned' }}</h2>
                     <p>{{ 'Analysis completed' if latest_scan else 'Run your first scan today' }}</p>
                 </div>
             </div>
 
             <!-- Total Scans -->
             <div class="col-lg-3 col-md-6">
-                <div class="dashboard-card h-100">
+                <div class="dashboard-card h-100 shadow-sm" style="border-radius: 18px;">
                     <div class="dashboard-icon">
                         <i class="fa-solid fa-camera"></i>
                     </div>
                     <h3>Total Scans</h3>
-                    <h2>{{ total_scans }}</h2>
+                    <h2 style="font-size: 1.6rem;">{{ total_scans }}</h2>
                     <p>AI computer vision scans recorded.</p>
                 </div>
             </div>
 
             <!-- Current Skin Type -->
             <div class="col-lg-3 col-md-6">
-                <div class="dashboard-card h-100">
+                <div class="dashboard-card h-100 shadow-sm" style="border-radius: 18px;">
                     <div class="dashboard-icon">
                         <i class="fa-solid fa-droplet"></i>
                     </div>
                     <h3>Current Skin Type</h3>
-                    <h2>{{ skin_type }}</h2>
-                    <p>Based on facial biomarker analysis.</p>
+                    <h2 style="font-size: 1.5rem;" class="{% if latest_scan %}text-success{% else %}text-muted{% endif %}">
+                        {{ skin_type }}
+                    </h2>
+                    <p>{{ 'Based on facial biomarker analysis.' if latest_scan else 'Awaiting initial scan.' }}</p>
                 </div>
             </div>
 
             <!-- Skin Health Score -->
             <div class="col-lg-3 col-md-6">
-                <div class="dashboard-card h-100">
+                <div class="dashboard-card h-100 shadow-sm" style="border-radius: 18px;">
                     <div class="dashboard-icon">
                         <i class="fa-solid fa-heart-pulse"></i>
                     </div>
                     <h3>Health Score</h3>
-                    <h2>{{ latest_scan.overall_score if latest_scan and latest_scan.overall_score else '88' }}%</h2>
-                    <p>{{ latest_scan.overall_condition if latest_scan else 'Healthy balance' }}</p>
+                    <h2 style="font-size: 1.6rem;">{{ (latest_scan.overall_score|string + '%') if latest_scan and latest_scan.overall_score else '--' }}</h2>
+                    <p>{{ latest_scan.overall_condition if latest_scan else 'Scan required' }}</p>
                 </div>
             </div>
         </div>
@@ -75,148 +77,277 @@
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <div class="dashboard-card small-card text-center p-3">
+                <div class="dashboard-card small-card text-center p-3 shadow-sm" style="border-radius: 16px;">
                     <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
                         <i class="fa-solid fa-droplet text-warning"></i>
                     </div>
                     <h4>Oiliness</h4>
-                    <h3 class="fw-bold">{{ latest_scan.oiliness_level if latest_scan else 'Moderate' }}</h3>
+                    <h3 class="fw-bold">{{ latest_scan.oiliness_level if latest_scan else '--' }}</h3>
                 </div>
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <div class="dashboard-card small-card text-center p-3">
+                <div class="dashboard-card small-card text-center p-3 shadow-sm" style="border-radius: 16px;">
                     <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
                         <i class="fa-solid fa-water text-info"></i>
                     </div>
                     <h4>Dryness</h4>
-                    <h3 class="fw-bold">{{ latest_scan.dryness_level if latest_scan else 'Low' }}</h3>
+                    <h3 class="fw-bold">{{ latest_scan.dryness_level if latest_scan else '--' }}</h3>
                 </div>
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <div class="dashboard-card small-card text-center p-3">
+                <div class="dashboard-card small-card text-center p-3 shadow-sm" style="border-radius: 16px;">
                     <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
                         <i class="fa-solid fa-gem text-secondary"></i>
                     </div>
                     <h4>Texture</h4>
-                    <h3 class="fw-bold">{{ latest_scan.texture_level if latest_scan else 'Smooth' }}</h3>
+                    <h3 class="fw-bold">{{ latest_scan.texture_level if latest_scan else '--' }}</h3>
                 </div>
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <div class="dashboard-card small-card text-center p-3">
+                <div class="dashboard-card small-card text-center p-3 shadow-sm" style="border-radius: 16px;">
                     <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
                         <i class="fa-solid fa-heart text-danger"></i>
                     </div>
                     <h4>Redness</h4>
-                    <h3 class="fw-bold">{{ latest_scan.redness_level if latest_scan else 'Low' }}</h3>
+                    <h3 class="fw-bold">{{ latest_scan.redness_level if latest_scan else '--' }}</h3>
                 </div>
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <div class="dashboard-card small-card text-center p-3">
+                <div class="dashboard-card small-card text-center p-3 shadow-sm" style="border-radius: 16px;">
                     <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
                         <i class="fa-solid fa-circle text-dark"></i>
                     </div>
                     <h4>Pigmentation</h4>
-                    <h3 class="fw-bold">{{ latest_scan.pigmentation_level if latest_scan else 'Low' }}</h3>
+                    <h3 class="fw-bold">{{ latest_scan.pigmentation_level if latest_scan else '--' }}</h3>
                 </div>
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <div class="dashboard-card small-card text-center p-3">
+                <div class="dashboard-card small-card text-center p-3 shadow-sm" style="border-radius: 16px;">
                     <div class="dashboard-icon mx-auto mb-2" style="width:45px; height:45px; font-size:20px;">
                         <i class="fa-solid fa-sparkles text-success"></i>
                     </div>
                     <h4>Overall</h4>
-                    <h3 class="fw-bold text-success">{{ latest_scan.skin_type if latest_scan else 'Normal' }}</h3>
+                    <h3 class="fw-bold {% if latest_scan %}text-success{% else %}text-muted{% endif %}">
+                        {{ latest_scan.skin_type if latest_scan else 'Pending' }}
+                    </h3>
                 </div>
             </div>
         </div>
 
-        <!-- Latest Report & Daily Tips Row -->
-        <div class="row g-4 mt-2">
-            <!-- Latest Skin Report Summary -->
+        <!-- Progress Chart & Tips Row -->
+        <div class="row g-4 mt-2 mb-4">
+            <!-- Health Trajectory Chart -->
             <div class="col-lg-8">
-                <div class="dashboard-card p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3 class="mb-0 fw-bold" style="color: var(--green-dark);">
-                            <i class="fa-solid fa-file-waveform me-2"></i> Latest Skin Report
-                        </h3>
-                        {% if latest_scan %}
-                        <a href="{{ url_for('result', id=latest_scan.id) }}" class="btn btn-sm btn-outline-primary" style="border-radius: 20px;">
-                            Full Report <i class="fa-solid fa-arrow-right ms-1"></i>
-                        </a>
+                <div class="dashboard-card p-4 h-100 shadow-sm" style="border-radius: 20px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h3 class="mb-0 fw-bold" style="color: var(--green-dark);">
+                                <i class="fa-solid fa-chart-line me-2"></i> Skin Health Trajectory
+                            </h3>
+                            <span class="small text-muted">Biomarker score progression over time</span>
+                        </div>
+                        {% if total_scans > 0 %}
+                        <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill small">
+                            <i class="fa-solid fa-arrow-trend-up me-1"></i> Active Tracking
+                        </span>
+                        {% else %}
+                        <span class="badge bg-light text-muted border px-3 py-1 rounded-pill small">
+                            Awaiting Scans
+                        </span>
                         {% endif %}
                     </div>
 
-                    <div class="dashboard-item d-flex justify-content-between py-2 border-bottom">
-                        <span>Skin Type Classification</span>
-                        <strong>{{ latest_scan.skin_type if latest_scan else 'Oily' }}</strong>
+                    {% if total_scans > 0 %}
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="skinProgressChart"></canvas>
                     </div>
-
-                    <div class="dashboard-item d-flex justify-content-between py-2 border-bottom">
-                        <span>Overall Condition</span>
-                        <strong>{{ latest_scan.overall_condition if latest_scan else 'Healthy & Balanced' }}</strong>
-                    </div>
-
-                    <div class="dashboard-item d-flex justify-content-between py-2 border-bottom">
-                        <span>Oiliness Level</span>
-                        <strong>{{ latest_scan.oiliness_level if latest_scan else 'High' }}</strong>
-                    </div>
-
-                    <div class="dashboard-item d-flex justify-content-between py-2 border-bottom">
-                        <span>Dryness Level</span>
-                        <strong>{{ latest_scan.dryness_level if latest_scan else 'Low' }}</strong>
-                    </div>
-
-                    <div class="dashboard-item d-flex justify-content-between py-2 border-bottom">
-                        <span>Texture Profile</span>
-                        <strong>{{ latest_scan.texture_level if latest_scan else 'Smooth' }}</strong>
-                    </div>
-
-                    <div class="dashboard-item d-flex justify-content-between py-2 border-bottom">
-                        <span>Last Scan Recorded</span>
-                        <strong>{{ latest_scan.display_date if latest_scan else '06 Aug 2026' }}</strong>
-                    </div>
-
-                    <div class="mt-4 d-flex gap-2 flex-wrap">
-                        <a href="{{ url_for('scanner') }}" class="hero-btn">
-                            <i class="fa-solid fa-camera"></i> Quick Scan
-                        </a>
-                        <a href="{{ url_for('history') }}" class="btn btn-outline-primary px-4 py-2" style="border-radius: 30px;">
-                            <i class="fa-solid fa-clock-rotate-left me-1"></i> View History
+                    {% else %}
+                    <div class="text-center py-5 d-flex flex-column align-items-center justify-content-center" style="min-height: 240px; background: rgba(112, 123, 87, 0.04); border-radius: 16px;">
+                        <div class="mb-3 text-muted" style="font-size: 40px; opacity: 0.6;">
+                            <i class="fa-solid fa-chart-area"></i>
+                        </div>
+                        <h5 class="fw-bold text-muted mb-1">No Scan Progression Recorded Yet</h5>
+                        <p class="small text-muted mb-3" style="max-width: 380px;">
+                            Complete your first AI facial scan to visualize your health score, hydration, and lipid balance trajectory over time.
+                        </p>
+                        <a href="{{ url_for('scanner') }}" class="hero-btn py-2 px-4" style="font-size: 0.9rem;">
+                            <i class="fa-solid fa-camera me-1"></i> Start First Scan
                         </a>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Personalized Daily Tips -->
+            <!-- Personalized Daily Tips with Interactive Habit Tracker -->
             <div class="col-lg-4">
-                <div class="dashboard-card p-4 h-100">
-                    <h3 class="mb-4 fw-bold" style="color: var(--green-dark);">
-                        <i class="fa-solid fa-sun-plant-wilt me-2"></i> Tailored Care Tips
-                    </h3>
+                <div class="dashboard-card p-4 h-100 shadow-sm" style="border-radius: 20px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0 fw-bold" style="color: var(--green-dark); font-size: 20px;">
+                            <i class="fa-solid fa-sun-plant-wilt me-2"></i> Daily Habits
+                        </h3>
+                        <span id="habitProgressBadge" class="badge px-2 py-1" style="background: rgba(112, 123, 87, 0.15); color: var(--green-dark);">0/{{ tips|length }} Done</span>
+                    </div>
 
-                    <ul class="tips-list ps-0" style="list-style: none;">
+                    <!-- Progress bar -->
+                    <div class="progress mb-3" style="height: 6px; background: #e8e3d8; border-radius: 10px;">
+                        <div id="habitProgressBar" class="progress-bar" role="progressbar" style="width: 0%; background: var(--green); transition: width 0.3s ease;"></div>
+                    </div>
+
+                    <ul class="tips-list ps-0 mb-3" style="list-style: none;">
                         {% for tip in tips %}
-                        <li class="py-2 d-flex align-items-start gap-2 border-bottom">
-                            <i class="fa-solid fa-circle-check text-success mt-1"></i>
-                            <span class="small text-muted">{{ tip }}</span>
+                        <li class="py-2 d-flex align-items-start gap-2 border-bottom routine-check-item"
+                            onclick="toggleHabit(this)">
+                            <input type="checkbox" class="form-check-input mt-1 habit-checkbox" style="cursor: pointer;">
+                            <span class="small text-muted habit-text">{{ tip }}</span>
                         </li>
                         {% endfor %}
                     </ul>
 
-                    <div class="mt-3 p-3 rounded" style="background: rgba(112, 123, 87, 0.08);">
+                    <div class="p-3 rounded" style="background: rgba(112, 123, 87, 0.08);">
                         <p class="small text-muted mb-0">
-                            <strong>Tip:</strong> Re-scan every 2-3 weeks to measure the efficacy of your active ingredient routine.
+                            <strong>Consistency Note:</strong> Re-scan every 2-3 weeks to measure the cellular renewal response.
                         </p>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Latest Report Details Card -->
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div class="dashboard-card p-4 shadow-sm" style="border-radius: 20px;">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <h3 class="mb-0 fw-bold" style="color: var(--green-dark);">
+                            <i class="fa-solid fa-file-waveform me-2"></i> Latest Diagnostic Summary
+                        </h3>
+                        {% if latest_scan %}
+                        <a href="{{ url_for('result', id=latest_scan.id) }}" class="btn btn-sm btn-outline-primary" style="border-radius: 20px;">
+                            View Full Diagnostic Report <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    {% if latest_scan %}
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border bg-light h-100">
+                                <span class="text-muted small d-block mb-1">Skin Type</span>
+                                <h5 class="fw-bold mb-0 text-success">{{ latest_scan.skin_type }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border bg-light h-100">
+                                <span class="text-muted small d-block mb-1">Barrier Condition</span>
+                                <h5 class="fw-bold mb-0">{{ latest_scan.overall_condition or 'Healthy & Balanced' }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded border bg-light h-100">
+                                <span class="text-muted small d-block mb-1">Scan Timestamp</span>
+                                <h5 class="fw-bold mb-0 text-muted">{{ latest_scan.display_date }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="p-4 rounded border text-center bg-light">
+                        <p class="text-muted mb-3">No scans have been performed for your profile yet.</p>
+                        <a href="{{ url_for('scanner') }}" class="hero-btn">
+                            <i class="fa-solid fa-camera"></i> Quick Scan
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if latest_scan %}
+                    <div class="mt-4 d-flex gap-2 flex-wrap">
+                        <a href="{{ url_for('scanner') }}" class="hero-btn">
+                            <i class="fa-solid fa-camera"></i> Quick Scan
+                        </a>
+                        <a href="{{ url_for('history') }}" class="btn btn-outline-primary px-4 py-2" style="border-radius: 30px;">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> View Scan History
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </section>
+
+<!-- Dashboard Chart & Habit Interactive Script -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Initialize Chart.js if scans exist
+    const ctx = document.getElementById('skinProgressChart');
+    if (ctx) {
+        const scanLabels = {{ chart_labels|tojson if chart_labels else "['Scan 1']" }};
+        const scanScores = {{ chart_scores|tojson if chart_scores else "[85]" }};
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: scanLabels,
+                datasets: [
+                    {
+                        label: 'Skin Health Score (%)',
+                        data: scanScores,
+                        borderColor: '#707B57',
+                        backgroundColor: 'rgba(112, 123, 87, 0.15)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: '#596547',
+                        pointRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        min: 40,
+                        max: 100,
+                        ticks: { stepSize: 10 }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Daily Habit Tracker Logic
+    window.toggleHabit = function(el) {
+        const checkbox = el.querySelector('.habit-checkbox');
+        const text = el.querySelector('.habit-text');
+        checkbox.checked = !checkbox.checked;
+        if (checkbox.checked) {
+            text.classList.add('text-decoration-line-through', 'text-muted');
+        } else {
+            text.classList.remove('text-decoration-line-through', 'text-muted');
+        }
+        updateHabitProgress();
+    };
+
+    function updateHabitProgress() {
+        const allBoxes = document.querySelectorAll('.habit-checkbox');
+        const checkedBoxes = document.querySelectorAll('.habit-checkbox:checked');
+        const total = allBoxes.length;
+        const count = checkedBoxes.length;
+        const pct = total > 0 ? (count / total) * 100 : 0;
+
+        const pBar = document.getElementById('habitProgressBar');
+        const pBadge = document.getElementById('habitProgressBadge');
+        if (pBar) pBar.style.width = pct + '%';
+        if (pBadge) pBadge.textContent = `${count}/${total} Done`;
+    }
+});
+</script>
 
 {% endblock %}

@@ -8,16 +8,16 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-5 col-md-8">
-                <div class="register-card p-4 p-md-5 shadow-sm" style="border-radius: 20px;">
+                <div class="register-card p-4 p-md-5 shadow-sm" style="border-radius: 20px; background: #fff; border: 1px solid var(--border);">
                     <div class="text-center mb-4">
                         <span class="hero-tag">Join Skiné</span>
                         <h1 class="register-title fw-bold" style="color: var(--green-dark);">Create Account</h1>
                         <p class="register-text small text-muted">
-                            Start tracking your skin characteristics and receiving AI-guided skincare regimens.
+                            Start tracking your skin biomarkers and receiving customized AI skincare regimens.
                         </p>
                     </div>
 
-                    <form method="POST" action="{{ url_for('register') }}">
+                    <form method="POST" action="{{ url_for('register') }}" onsubmit="return validatePasswords();">
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Full Name</label>
                             <input
@@ -40,28 +40,53 @@
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Password (min. 6 characters)</label>
-                            <input
-                                type="password"
-                                name="password"
-                                class="form-control custom-input"
-                                placeholder="••••••••"
-                                minlength="6"
-                                required>
+                            <div class="password-toggle-wrapper mb-2">
+                                <input
+                                    type="password"
+                                    name="password"
+                                    id="regPassword"
+                                    class="form-control custom-input"
+                                    placeholder="••••••••"
+                                    minlength="6"
+                                    oninput="checkPasswordStrength(this.value)"
+                                    required>
+                                <button type="button" class="toggle-password-btn" data-target="regPassword" aria-label="Toggle password visibility">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+
+                            <!-- Real-time Password Strength Meter -->
+                            <div class="progress" style="height: 4px; border-radius: 10px; background: #e8e3d8;">
+                                <div id="strengthBar" class="progress-bar" role="progressbar" style="width: 0%; transition: all 0.3s ease;"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <span class="small text-muted" style="font-size: 0.75rem;">Strength: <strong id="strengthLabel">Enter password</strong></span>
+                            </div>
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label small fw-bold text-muted">Confirm Password</label>
-                            <input
-                                type="password"
-                                name="confirm_password"
-                                class="form-control custom-input"
-                                placeholder="••••••••"
-                                minlength="6"
-                                required>
+                            <div class="password-toggle-wrapper">
+                                <input
+                                    type="password"
+                                    name="confirm_password"
+                                    id="regConfirmPassword"
+                                    class="form-control custom-input"
+                                    placeholder="••••••••"
+                                    minlength="6"
+                                    oninput="checkPasswordMatch()"
+                                    required>
+                                <button type="button" class="toggle-password-btn" data-target="regConfirmPassword" aria-label="Toggle password visibility">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+                            <span id="matchFeedback" class="small text-danger d-none mt-1 d-block" style="font-size: 0.75rem;">
+                                Passwords do not match.
+                            </span>
                         </div>
 
                         <button type="submit" class="hero-btn w-100 justify-content-center">
-                            <i class="fa-solid fa-user-plus"></i>
+                            <i class="fa-solid fa-user-plus me-2"></i>
                             Register Account
                         </button>
 
@@ -79,5 +104,61 @@
         </div>
     </div>
 </section>
+
+<script>
+function checkPasswordStrength(val) {
+    const bar = document.getElementById('strengthBar');
+    const label = document.getElementById('strengthLabel');
+    if (!val) {
+        bar.style.width = '0%';
+        label.textContent = 'Enter password';
+        label.className = '';
+        return;
+    }
+
+    let score = 0;
+    if (val.length >= 6) score += 25;
+    if (val.length >= 10) score += 25;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score += 25;
+    if (/[0-9]/.test(val) || /[^A-Za-z0-9]/.test(val)) score += 25;
+
+    bar.style.width = score + '%';
+
+    if (score <= 25) {
+        bar.className = 'progress-bar bg-danger';
+        label.textContent = 'Weak';
+        label.className = 'text-danger';
+    } else if (score <= 75) {
+        bar.className = 'progress-bar bg-warning';
+        label.textContent = 'Medium';
+        label.className = 'text-warning';
+    } else {
+        bar.className = 'progress-bar bg-success';
+        label.textContent = 'Strong';
+        label.className = 'text-success';
+    }
+}
+
+function checkPasswordMatch() {
+    const p1 = document.getElementById('regPassword').value;
+    const p2 = document.getElementById('regConfirmPassword').value;
+    const feedback = document.getElementById('matchFeedback');
+    if (p2 && p1 !== p2) {
+        feedback.classList.remove('d-none');
+    } else {
+        feedback.classList.add('d-none');
+    }
+}
+
+function validatePasswords() {
+    const p1 = document.getElementById('regPassword').value;
+    const p2 = document.getElementById('regConfirmPassword').value;
+    if (p1 !== p2) {
+        alert("Passwords do not match. Please verify and try again.");
+        return false;
+    }
+    return true;
+}
+</script>
 
 {% endblock %}

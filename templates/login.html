@@ -8,12 +8,12 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-5 col-md-8">
-                <div class="login-card p-4 p-md-5 shadow-sm" style="border-radius: 20px;">
+                <div class="login-card p-4 p-md-5 shadow-sm" style="border-radius: 20px; background: #fff; border: 1px solid var(--border);">
                     <div class="text-center mb-4">
                         <span class="hero-tag">Welcome Back</span>
                         <h1 class="login-title fw-bold" style="color: var(--green-dark);">Sign In</h1>
                         <p class="login-text small text-muted">
-                            Sign in to access your skin health history, customized routines, and tracking dashboard.
+                            Access your skin health history, customized regimens, and biomarker timeline.
                         </p>
                     </div>
 
@@ -30,26 +30,32 @@
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Password</label>
-                            <input
-                                type="password"
-                                name="password"
-                                class="form-control custom-input"
-                                placeholder="••••••••"
-                                required>
+                            <div class="password-toggle-wrapper">
+                                <input
+                                    type="password"
+                                    name="password"
+                                    id="loginPassword"
+                                    class="form-control custom-input"
+                                    placeholder="••••••••"
+                                    required>
+                                <button type="button" class="toggle-password-btn" data-target="loginPassword" aria-label="Toggle password visibility">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="remember" name="remember">
                                 <label class="form-check-label small text-muted" for="remember">
                                     Remember me
                                 </label>
                             </div>
-                            <span class="small text-muted">Demo: user@skinai.com / password123</span>
+                            <span class="small text-muted"><i class="fa-solid fa-key me-1 text-warning"></i> Demo: user@skinai.com / password123</span>
                         </div>
 
                         <button type="submit" class="hero-btn w-100 justify-content-center">
-                            <i class="fa-solid fa-right-to-bracket"></i>
+                            <i class="fa-solid fa-right-to-bracket me-2"></i>
                             Sign In
                         </button>
 

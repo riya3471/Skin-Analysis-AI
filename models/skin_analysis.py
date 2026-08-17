@@ -871,6 +871,7 @@ def analyze_skin_image(image_path, output_dir=None):
         # Recommendations & Routines
         "recommendations": skincare_plan.get("recommendations", []),
         "recommended_ingredients": skincare_plan.get("recommended_ingredients", []),
+        "product_recommendations": skincare_plan.get("product_recommendations", []),
         "things_to_avoid": skincare_plan.get("things_to_avoid", []),
         "morning_routine": skincare_plan.get("morning_routine", []),
         "night_routine": skincare_plan.get("night_routine", []),

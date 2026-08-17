@@ -39,11 +39,11 @@
                     <div class="profile-info text-start">
                         <div class="profile-detail d-flex justify-content-between py-2 border-bottom">
                             <span class="text-muted small">Baseline Skin Type</span>
-                            <strong class="text-success">{{ user.skin_type or 'Normal' }}</strong>
+                            <strong class="{% if user.skin_type %}text-success{% else %}text-muted{% endif %}">{{ user.skin_type or 'Not Scanned Yet' }}</strong>
                         </div>
                         <div class="profile-detail d-flex justify-content-between py-2 border-bottom">
                             <span class="text-muted small">Health Score</span>
-                            <strong>{{ user.score or '88%' }}</strong>
+                            <strong>{{ user.score or '--' }}</strong>
                         </div>
                         <div class="profile-detail d-flex justify-content-between py-2 border-bottom">
                             <span class="text-muted small">Last Scan</span>

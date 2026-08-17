@@ -131,6 +131,43 @@ def get_ingredients(
         })
 
     # -----------------------------
+    # BASELINE ESSENTIALS
+    # Ensure every user gets core protective actives
+    # -----------------------------
+
+    existing_names = {item["ingredient"] for item in ingredients}
+
+    if "Vitamin C" not in existing_names:
+        ingredients.append({
+            "ingredient": "Vitamin C",
+            "reason": "Provides daily antioxidant protection and boosts radiance."
+        })
+
+    if "Hyaluronic Acid" not in existing_names:
+        ingredients.append({
+            "ingredient": "Hyaluronic Acid",
+            "reason": "Lightweight humectant that locks in moisture without greasiness."
+        })
+
+    if "Ceramides" not in existing_names:
+        ingredients.append({
+            "ingredient": "Ceramides",
+            "reason": "Reinforces the skin's natural lipid barrier against environmental stress."
+        })
+
+    if "SPF 50 Sunscreen" not in existing_names:
+        ingredients.append({
+            "ingredient": "SPF 50 Sunscreen",
+            "reason": "Broad-spectrum UV defense to prevent premature aging and dark spots."
+        })
+
+    if "Niacinamide" not in existing_names:
+        ingredients.append({
+            "ingredient": "Niacinamide",
+            "reason": "Improves skin texture, minimizes pores, and supports barrier function."
+        })
+
+    # -----------------------------
     # REMOVE DUPLICATES
     # -----------------------------
 
@@ -140,6 +177,192 @@ def get_ingredients(
         unique[item["ingredient"]] = item
 
     return list(unique.values())
+
+
+# =====================================================================
+# PRODUCT & BRAND CATALOG
+# Maps each active ingredient to recommended products with brand names
+# =====================================================================
+
+PRODUCT_CATALOG = {
+    "Niacinamide": [
+        {
+            "product": "Niacinamide 10% + Zinc 1%",
+            "brand": "The Ordinary",
+            "category": "Serum",
+            "note": "Balances sebum & minimizes pores. Budget-friendly."
+        },
+        {
+            "product": "10% Niacinamide Booster",
+            "brand": "Paula's Choice",
+            "category": "Serum",
+            "note": "Concentrated formula for oil control and brightening."
+        },
+    ],
+    "Salicylic Acid": [
+        {
+            "product": "BHA Liquid Exfoliant 2%",
+            "brand": "Paula's Choice",
+            "category": "Exfoliant",
+            "note": "Gold-standard BHA for unclogging pores."
+        },
+        {
+            "product": "Salicylic Acid Cleanser",
+            "brand": "CeraVe",
+            "category": "Cleanser",
+            "note": "Gentle daily SA cleanser with ceramides."
+        },
+    ],
+    "Hyaluronic Acid": [
+        {
+            "product": "Hyaluronic Acid 2% + B5",
+            "brand": "The Ordinary",
+            "category": "Serum",
+            "note": "Multi-weight HA for deep and surface hydration."
+        },
+        {
+            "product": "Hydra Power Essence",
+            "brand": "COSRX",
+            "category": "Essence",
+            "note": "Lightweight hydrating essence with HA."
+        },
+    ],
+    "Ceramides": [
+        {
+            "product": "Moisturizing Cream",
+            "brand": "CeraVe",
+            "category": "Moisturizer",
+            "note": "Dermatologist-recommended with 3 essential ceramides."
+        },
+        {
+            "product": "Ceramide Ato Concentrate Cream",
+            "brand": "Illiyoon",
+            "category": "Moisturizer",
+            "note": "K-beauty barrier repair cream for sensitive skin."
+        },
+    ],
+    "Ceramide Barrier Cream": [
+        {
+            "product": "Moisturizing Cream",
+            "brand": "CeraVe",
+            "category": "Moisturizer",
+            "note": "MVE technology delivers ceramides over 24 hours."
+        },
+    ],
+    "Vitamin C": [
+        {
+            "product": "C E Ferulic Serum",
+            "brand": "SkinCeuticals",
+            "category": "Serum",
+            "note": "Clinical-grade 15% L-Ascorbic Acid with antioxidant synergy."
+        },
+        {
+            "product": "Vitamin C Suspension 23% + HA Spheres 2%",
+            "brand": "The Ordinary",
+            "category": "Serum",
+            "note": "High-potency vitamin C at an affordable price."
+        },
+        {
+            "product": "10% Vitamin C Serum",
+            "brand": "Minimalist",
+            "category": "Serum",
+            "note": "Ethyl Ascorbic Acid for stable brightening."
+        },
+    ],
+    "SPF 50 Sunscreen": [
+        {
+            "product": "Anthelios UVMune 400 SPF 50+",
+            "brand": "La Roche-Posay",
+            "category": "Sunscreen",
+            "note": "Superior broad-spectrum protection, lightweight finish."
+        },
+        {
+            "product": "Relief Sun Rice + Probiotics SPF 50+",
+            "brand": "Beauty of Joseon",
+            "category": "Sunscreen",
+            "note": "K-beauty cult-favorite. Moisturizing with no white cast."
+        },
+        {
+            "product": "UV Aqua Rich Watery Essence SPF 50+",
+            "brand": "Bioré",
+            "category": "Sunscreen",
+            "note": "Ultra-light watery texture, ideal under makeup."
+        },
+    ],
+    "Centella Asiatica": [
+        {
+            "product": "Madagascar Centella Ampoule",
+            "brand": "SKIN1004",
+            "category": "Ampoule",
+            "note": "Pure centella extract for calming and recovery."
+        },
+        {
+            "product": "Centella Unscented Serum",
+            "brand": "PURITO",
+            "category": "Serum",
+            "note": "Fragrance-free calming serum for sensitive skin."
+        },
+    ],
+    "Aloe Vera": [
+        {
+            "product": "92% Aloe Vera Soothing Gel",
+            "brand": "Nature Republic",
+            "category": "Gel",
+            "note": "Multi-purpose soothing & cooling gel."
+        },
+    ],
+    "Lactic Acid": [
+        {
+            "product": "Lactic Acid 10% + HA",
+            "brand": "The Ordinary",
+            "category": "Exfoliant",
+            "note": "Gentle AHA for smoother, more radiant skin texture."
+        },
+    ],
+    "BHA Exfoliant": [
+        {
+            "product": "BHA Blackhead Power Liquid",
+            "brand": "COSRX",
+            "category": "Exfoliant",
+            "note": "Betaine salicylate formula for gentle pore clearing."
+        },
+    ],
+    "Niacinamide + Vitamin C": [
+        {
+            "product": "Niacinamide 10% + Zinc 1%",
+            "brand": "The Ordinary",
+            "category": "Serum",
+            "note": "Use in the evening; pair with Vitamin C in the morning."
+        },
+    ],
+}
+
+
+def get_product_recommendations(recommended_ingredients):
+    """
+    Given the list of recommended ingredient dicts,
+    returns a list of product recommendations with brand info.
+    """
+    products = []
+    seen_products = set()
+
+    for item in recommended_ingredients:
+        ingredient_name = item.get("ingredient", "")
+        catalog_entries = PRODUCT_CATALOG.get(ingredient_name, [])
+
+        for entry in catalog_entries:
+            product_key = f"{entry['brand']}_{entry['product']}"
+            if product_key not in seen_products:
+                seen_products.add(product_key)
+                products.append({
+                    "ingredient": ingredient_name,
+                    "product": entry["product"],
+                    "brand": entry["brand"],
+                    "category": entry["category"],
+                    "note": entry["note"],
+                })
+
+    return products
 
 
 def get_things_to_avoid(
@@ -848,11 +1071,16 @@ def get_recommendations(
 
     recommendations = list(dict.fromkeys(recommendations))
 
+    # Build product/brand recommendations from the ingredient list
+    product_recs = get_product_recommendations(recommended_ingredients)
+
     return {
 
         "recommendations": recommendations,
 
         "recommended_ingredients": recommended_ingredients,
+
+        "product_recommendations": product_recs,
 
         "things_to_avoid": things_to_avoid,
 

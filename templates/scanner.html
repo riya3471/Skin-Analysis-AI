@@ -11,16 +11,18 @@
             <span class="hero-tag">Computer Vision Analysis</span>
             <h1 class="scanner-title">Scan Your Skin</h1>
             <p class="scanner-text">
-                Position your face within the frame in good lighting, or upload a clear front-facing portrait photo for
-                immediate AI analysis.
+                Position your face within the guided frame in good lighting, or upload a clear front-facing portrait photo for
+                instant clinical-grade biomarker assessment.
             </p>
         </div>
 
         <!-- Alert messages container for scanner errors -->
         <div id="scannerAlert" class="alert alert-danger alert-dismissible fade show d-none" role="alert"
-            style="border-radius: 12px; max-width: 800px; margin: 0 auto 30px auto;">
-            <i class="fa-solid fa-triangle-exclamation me-2"></i>
-            <span id="scannerAlertMsg">An error occurred.</span>
+            style="border-radius: 14px; max-width: 850px; margin: 0 auto 30px auto; border: 1px solid rgba(220, 53, 69, 0.3);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+                <span id="scannerAlertMsg">An error occurred.</span>
+            </div>
             <button type="button" class="btn-close"
                 onclick="document.getElementById('scannerAlert').classList.add('d-none')"></button>
         </div>
@@ -28,111 +30,145 @@
         <div class="row align-items-stretch g-4">
             <!-- LEFT: Camera & Upload Interface -->
             <div class="col-lg-7">
-                <div class="scanner-card position-relative overflow-hidden">
-                    <video id="video" autoplay playsinline muted
-                        style="width: 100%; border-radius: 16px; background: #1a1a1a; display: block; min-height: 360px; object-fit: cover;"></video>
-                    <canvas id="canvas" style="display:none;"></canvas>
-                    <img id="imagePreview" src="" alt="Preview" class="d-none"
-                        style="width: 100%; border-radius: 16px; min-height: 360px; object-fit: cover;">
-                    <div id="scanLine" class="scan-line d-none"></div>
-                </div>
+                <div class="scanner-card position-relative overflow-hidden p-3 p-md-4 shadow-sm" style="border-radius: 20px; background: #fff; border: 1px solid var(--border);">
+                    
+                    <!-- Unified Camera Viewport Container -->
+                    <div class="camera-container" id="cameraViewport">
+                        
+                        <!-- Standby Idle State Placeholder -->
+                        <div id="cameraStandby" class="camera-placeholder">
+                            <div class="camera-placeholder-icon">
+                                <i class="fa-solid fa-camera"></i>
+                            </div>
+                            <h4 class="fw-bold mb-2 text-white" style="font-family: 'Poppins', sans-serif;">Camera is on Standby</h4>
+                            <p class="small text-muted mb-4" style="max-width: 320px;">
+                                Click below to activate your webcam, or drag and drop a clear facial portrait photo.
+                            </p>
+                            <button id="standbyStartBtn" class="hero-btn py-2 px-4" style="font-size: 0.95rem;">
+                                <i class="fa-solid fa-video me-1"></i> Enable Camera
+                            </button>
+                        </div>
 
-                <!-- Control Buttons -->
-                <div class="scanner-buttons mt-4">
-                    <div class="d-flex flex-wrap gap-2 justify-content-center">
-                        <button id="startBtn" class="scanner-btn primary-btn">
-                            <i class="fa-solid fa-video"></i>
-                            <span>Start Camera</span>
-                        </button>
+                        <!-- Live Video Stream -->
+                        <video id="video" autoplay playsinline muted class="d-none"
+                            style="width: 100%; border-radius: 16px; min-height: 380px; object-fit: cover;"></video>
+                        <canvas id="canvas" style="display:none;"></canvas>
 
-                        <button id="captureBtn" class="scanner-btn primary-btn d-none" style="background: #2b7a4b;">
-                            <i class="fa-solid fa-camera"></i>
-                            <span>Analyze Now</span>
-                        </button>
+                        <!-- Uploaded Image Preview -->
+                        <img id="imagePreview" src="" alt="Captured Face" class="d-none"
+                            style="width: 100%; border-radius: 16px; min-height: 380px; object-fit: cover;">
 
-                        <label for="fileUploadInput" class="scanner-btn btn-outline-primary mb-0"
-                            style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid var(--green); color: var(--green); border-radius: 30px; padding: 12px 24px; font-weight: 500;">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <span>Upload Photo</span>
-                        </label>
-                        <input type="file" id="fileUploadInput" accept="image/*" class="d-none">
+                        <!-- Face Alignment Guide Overlay (Visible when camera/preview active) -->
+                        <div id="faceGuide" class="face-guide-overlay d-none"></div>
+                        <div id="faceGuideText" class="face-guide-text d-none">
+                            <i class="fa-solid fa-crosshairs me-1 text-success"></i> Align your face within the frame
+                        </div>
 
-                        <button id="stopBtn" class="scanner-btn btn-outline-secondary d-none"
-                            style="border-radius: 30px; padding: 12px 20px;">
-                            <i class="fa-solid fa-stop"></i>
-                            <span>Stop Camera</span>
-                        </button>
+                        <!-- Animated Scan Line -->
+                        <div id="scanLine" class="scan-line d-none"></div>
                     </div>
 
-                    <!-- Step-by-step Loading Indicator -->
-                    <div id="loadingBox" class="analysis-card mt-4 shadow-sm"
-                        style="display:none; border: 1px solid #707b57; background: rgba(253, 251, 248, 0.95);">
-                        <div class="d-flex align-items-center mb-3 gap-3">
-                            <div class="spinner-border text-success" role="status" style="width: 2rem; height: 2rem;">
-                            </div>
-                            <h4 class="mb-0 fw-bold" style="color: var(--green-dark);">AI Skin Analysis in Progress...
-                            </h4>
+                    <!-- Control Action Bar -->
+                    <div class="scanner-buttons mt-4">
+                        <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+                            <button id="startBtn" class="scanner-btn primary-btn d-none">
+                                <i class="fa-solid fa-video"></i>
+                                <span>Start Camera</span>
+                            </button>
+
+                            <button id="captureBtn" class="scanner-btn primary-btn d-none" style="background: #2b7a4b; padding: 12px 28px;">
+                                <i class="fa-solid fa-bolt me-1"></i>
+                                <span>Capture & Analyze</span>
+                            </button>
+
+                            <button id="flipBtn" class="scanner-btn btn-outline-secondary d-none" title="Switch Camera"
+                                style="border-radius: 30px; padding: 12px 18px;">
+                                <i class="fa-solid fa-camera-rotate"></i>
+                            </button>
+
+                            <button id="stopBtn" class="scanner-btn btn-outline-danger d-none"
+                                style="border-radius: 30px; padding: 12px 20px;">
+                                <i class="fa-solid fa-stop"></i>
+                                <span>Stop</span>
+                            </button>
                         </div>
-                        <ul class="scanner-list" id="scanStepList" style="list-style: none; padding-left: 0;">
-                            <li id="step1" class="py-1"><i
-                                    class="fa-solid fa-circle-notch fa-spin text-primary me-2"></i> 1. Capturing
-                                high-resolution facial frame...</li>
-                            <li id="step2" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 2.
-                                Detecting facial landmarks & frontal alignment...</li>
-                            <li id="step3" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 3.
-                                Extracting forehead & cheek regions...</li>
-                            <li id="step4" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 4.
-                                Analyzing oiliness, texture, dryness, redness & pigmentation...</li>
-                            <li id="step5" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 5.
-                                Formulating personalized skincare routines...</li>
-                        </ul>
+
+                        <!-- Modern Drag & Drop Zone (Alternative Upload) -->
+                        <div class="mt-4" id="dropzoneContainer">
+                            <div class="dropzone-box" id="dropzone">
+                                <input type="file" id="fileUploadInput" accept="image/*" class="d-none">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    <i class="fa-solid fa-cloud-arrow-up fs-2 mb-2" style="color: var(--green);"></i>
+                                    <h6 class="fw-bold mb-1" style="color: var(--green-dark);">Drag & Drop your portrait photo here</h6>
+                                    <p class="small text-muted mb-2">or <span class="text-primary text-decoration-underline" style="cursor:pointer;" onclick="document.getElementById('fileUploadInput').click();">browse from device</span> (JPEG, PNG, WEBP)</p>
+                                    <span class="badge bg-light text-muted border">Max 10MB • Frontal lighting recommended</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step-by-step Synchronized Loading Indicator -->
+                        <div id="loadingBox" class="analysis-card mt-4 shadow-sm"
+                            style="display:none; border: 1px solid #707b57; background: rgba(253, 251, 248, 0.98); border-radius: 16px;">
+                            <div class="d-flex align-items-center mb-3 gap-3">
+                                <div class="spinner-border text-success" role="status" style="width: 2.2rem; height: 2.2rem;"></div>
+                                <div>
+                                    <h4 class="mb-0 fw-bold" style="color: var(--green-dark);">Computer Vision Pipeline Active</h4>
+                                    <span class="small text-muted">Extracting facial landmarks & calculating skin biomarkers...</span>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <ul class="scanner-list ps-0 mb-0" id="scanStepList" style="list-style: none;">
+                                <li id="step1" class="py-1"><i class="fa-solid fa-circle-notch fa-spin text-primary me-2"></i> 1. Validating lighting & camera clarity...</li>
+                                <li id="step2" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 2. Detecting facial landmarks & frontal alignment...</li>
+                                <li id="step3" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 3. Isolating forehead, cheeks & T-zone regions...</li>
+                                <li id="step4" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 4. Analyzing oiliness, texture smoothness, redness & tone...</li>
+                                <li id="step5" class="py-1 text-muted"><i class="fa-regular fa-circle me-2"></i> 5. Compiling personalized active ingredient regimen...</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- RIGHT: Analysis Details & Guidelines -->
             <div class="col-lg-5">
-                <div class="analysis-card h-100 d-flex flex-column justify-content-between">
+                <div class="analysis-card h-100 d-flex flex-column justify-content-between p-4 shadow-sm" style="border-radius: 20px; background: #fff; border: 1px solid var(--border);">
                     <div>
-                        <h3 class="mb-3" style="font-size: 26px; color: var(--green-dark);">
-                            <i class="fa-solid fa-microscope me-2"></i> AI Assessment Criteria
-                        </h3>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="p-2 rounded-circle" style="background: rgba(112, 123, 87, 0.15); color: var(--green-dark);">
+                                <i class="fa-solid fa-microscope fs-5"></i>
+                            </div>
+                            <h3 class="mb-0 fw-bold" style="font-size: 22px; color: var(--green-dark);">
+                                AI Diagnostic Parameters
+                            </h3>
+                        </div>
                         <p class="text-muted small mb-4">
-                            Our computer vision pipeline evaluates 6 key skin biomarkers from your facial zones:
+                            Our cross-calibrated computer vision algorithms evaluate 6 clinical skin biomarkers in real-time:
                         </p>
 
                         <div class="analysis-result">
-                            <div
-                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-droplet text-primary me-2"></i> Skin Type
-                                    Classification</span>
-                                <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
+                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span><i class="fa-solid fa-droplet text-primary me-2"></i> Skin Type Classification</span>
+                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Multi-Zone Sebum</strong>
                             </div>
-                            <div
-                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-sun text-warning me-2"></i> Oiliness & Specular Shine</span>
-                                <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
+                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span><i class="fa-solid fa-sun text-warning me-2"></i> Oiliness & Specular Reflection</span>
+                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> HSV Saliency</strong>
                             </div>
-                            <div
-                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-water text-info me-2"></i> Dryness & Barrier Level</span>
-                                <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
+                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span><i class="fa-solid fa-water text-info me-2"></i> Dryness & Barrier Hydration</span>
+                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Moisture Gradient</strong>
                             </div>
-                            <div
-                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-gem text-secondary me-2"></i> Texture Smoothness
-                                    (Laplacian)</span>
-                                <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
+                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span><i class="fa-solid fa-gem text-secondary me-2"></i> Micro-Texture & Smoothness</span>
+                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Laplacian Variance</strong>
                             </div>
-                            <div
-                                class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-heart text-danger me-2"></i> Redness & Sensitivity</span>
-                                <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
+                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span><i class="fa-solid fa-heart text-danger me-2"></i> Redness & Sensitivity Index</span>
+                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Hemoglobin Delta</strong>
                             </div>
                             <div class="dashboard-item d-flex justify-content-between align-items-center py-2">
-                                <span><i class="fa-solid fa-circle-half-stroke text-dark me-2"></i> Pigmentation & Tone
-                                    Uniformity</span>
-                                <strong class="text-success"><i class="fa-solid fa-check-circle"></i></strong>
+                                <span><i class="fa-solid fa-circle-half-stroke text-dark me-2"></i> Pigmentation & Tone Uniformity</span>
+                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Melanin Map</strong>
                             </div>
                         </div>
                     </div>
@@ -140,11 +176,11 @@
                     <div class="mt-4 p-3 rounded"
                         style="background: rgba(112, 123, 87, 0.08); border-left: 4px solid var(--green);">
                         <h6 class="fw-bold mb-1" style="color: var(--green-dark);"><i
-                                class="fa-solid fa-lightbulb me-1"></i> Best Practices for Accuracy</h6>
+                                class="fa-solid fa-lightbulb me-1"></i> Scanning Instructions</h6>
                         <ul class="small text-muted mb-0 ps-3">
-                            <li>Face the camera directly with a neutral expression.</li>
-                            <li>Ensure balanced natural lighting without heavy cast shadows.</li>
-                            <li>Remove glasses and keep hair away from forehead and cheeks.</li>
+                            <li>Face the camera directly with a neutral facial expression.</li>
+                            <li>Ensure balanced natural lighting without heavy backlight or glare.</li>
+                            <li>Remove glasses and ensure your forehead and cheekbones are visible.</li>
                         </ul>
                     </div>
                 </div>

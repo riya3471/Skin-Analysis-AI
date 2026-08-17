@@ -207,13 +207,21 @@ def dashboard():
         stats = get_user_dashboard_stats(user_id)
         latest_scan = stats.get("latest_scan")
         total_scans = stats.get("total_scans", 0)
+        scans_list = get_user_scans(user_id) or []
     else:
-        # For guest visitor, show default demo scan stats
-        latest_scan = get_scan_by_id(1)
-        total_scans = 1 if latest_scan else 0
+        latest_scan = None
+        total_scans = 0
+        scans_list = []
+
+    # Prepare historical chart data in chronological order
+    chart_labels = [s.get("display_date", "") for s in reversed(scans_list)]
+    chart_scores = [int(s.get("overall_score", 0)) for s in reversed(scans_list)]
 
     # Determine personalized daily tips based on latest skin type
-    skin_type = latest_scan.get("skin_type", "Normal") if latest_scan else "Normal"
+    if latest_scan and latest_scan.get("skin_type"):
+        skin_type = latest_scan.get("skin_type")
+    else:
+        skin_type = "Not Scanned Yet"
     
     tips = [
         "Wash your face twice daily with a gentle, non-stripping cleanser.",
@@ -228,13 +236,15 @@ def dashboard():
     elif skin_type == "Combination":
         tips.append("Use lightweight hydration on T-zone and richer cream on dry cheek areas.")
     else:
-        tips.append("Maintain consistency with your morning and evening skincare steps.")
+        tips.append("Complete your first AI scan to unlock tailored active ingredient advice.")
 
     return render_template(
         "dashboard.html",
         latest_scan=latest_scan,
         total_scans=total_scans,
         skin_type=skin_type,
+        chart_labels=chart_labels,
+        chart_scores=chart_scores,
         tips=tips,
     )
 

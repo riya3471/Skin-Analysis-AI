@@ -3,17 +3,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const canvas = document.getElementById("canvas");
     const imagePreview = document.getElementById("imagePreview");
     const scanLine = document.getElementById("scanLine");
+    const cameraStandby = document.getElementById("cameraStandby");
+    const faceGuide = document.getElementById("faceGuide");
+    const faceGuideText = document.getElementById("faceGuideText");
 
+    const standbyStartBtn = document.getElementById("standbyStartBtn");
     const startBtn = document.getElementById("startBtn");
     const captureBtn = document.getElementById("captureBtn");
+    const flipBtn = document.getElementById("flipBtn");
     const stopBtn = document.getElementById("stopBtn");
     const fileUploadInput = document.getElementById("fileUploadInput");
+    const dropzone = document.getElementById("dropzone");
 
     const loadingBox = document.getElementById("loadingBox");
     const scannerAlert = document.getElementById("scannerAlert");
     const scannerAlertMsg = document.getElementById("scannerAlertMsg");
 
     let stream = null;
+    let currentFacingMode = "user";
 
     function showAlert(msg) {
         if (scannerAlert && scannerAlertMsg) {
@@ -32,29 +39,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 1. START CAMERA
-    async function startCamera() {
+    async function startCamera(facingMode = "user") {
         hideAlert();
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
-                    facingMode: "user"
+                    facingMode: facingMode
                 },
                 audio: false
             });
 
             video.srcObject = stream;
             video.classList.remove("d-none");
-            imagePreview.classList.add("d-none");
-            scanLine.classList.remove("d-none");
+            if (cameraStandby) cameraStandby.classList.add("d-none");
+            if (imagePreview) imagePreview.classList.add("d-none");
+            if (scanLine) scanLine.classList.remove("d-none");
+            if (faceGuide) {
+                faceGuide.classList.remove("d-none");
+                faceGuide.classList.add("ready");
+            }
+            if (faceGuideText) faceGuideText.classList.remove("d-none");
 
-            startBtn.classList.add("d-none");
-            captureBtn.classList.remove("d-none");
-            stopBtn.classList.remove("d-none");
+            if (startBtn) startBtn.classList.add("d-none");
+            if (standbyStartBtn) standbyStartBtn.classList.add("d-none");
+            if (captureBtn) captureBtn.classList.remove("d-none");
+            if (flipBtn) flipBtn.classList.remove("d-none");
+            if (stopBtn) stopBtn.classList.remove("d-none");
         } catch (err) {
             console.error("Camera access error:", err);
-            showAlert("Unable to access camera. Please allow camera permission or use the 'Upload Photo' option.");
+            showAlert("Unable to access camera. Please check camera permissions or drag-and-drop a photo below.");
+            stopCamera();
         }
     }
 
@@ -64,21 +85,36 @@ document.addEventListener("DOMContentLoaded", () => {
             stream.getTracks().forEach(track => track.stop());
             stream = null;
         }
-        video.srcObject = null;
-        scanLine.classList.add("d-none");
-        startBtn.classList.remove("d-none");
-        captureBtn.classList.add("d-none");
-        stopBtn.classList.add("d-none");
+        if (video) {
+            video.srcObject = null;
+            video.classList.add("d-none");
+        }
+        if (cameraStandby) cameraStandby.classList.remove("d-none");
+        if (scanLine) scanLine.classList.add("d-none");
+        if (faceGuide) faceGuide.classList.add("d-none");
+        if (faceGuideText) faceGuideText.classList.add("d-none");
+
+        if (startBtn) startBtn.classList.remove("d-none");
+        if (standbyStartBtn) standbyStartBtn.classList.remove("d-none");
+        if (captureBtn) captureBtn.classList.add("d-none");
+        if (flipBtn) flipBtn.classList.add("d-none");
+        if (stopBtn) stopBtn.classList.add("d-none");
     }
 
-    // 3. STEP PROGRESS ANIMATION
+    // 3. FLIP CAMERA
+    function flipCamera() {
+        currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+        startCamera(currentFacingMode);
+    }
+
+    // 4. STEP PROGRESS ANIMATION
     function animateSteps() {
         const steps = [
-            { id: "step1", text: "1. Frame captured.", icon: "fa-solid fa-check-circle text-success" },
+            { id: "step1", text: "1. Camera frame validated.", icon: "fa-solid fa-check-circle text-success" },
             { id: "step2", text: "2. Detecting face alignment...", icon: "fa-solid fa-circle-notch fa-spin text-primary" },
-            { id: "step3", text: "3. Extracting facial regions...", icon: "fa-solid fa-circle-notch fa-spin text-primary" },
-            { id: "step4", text: "4. Analyzing skin metrics...", icon: "fa-solid fa-circle-notch fa-spin text-primary" },
-            { id: "step5", text: "5. Finalizing skincare report...", icon: "fa-solid fa-circle-notch fa-spin text-primary" }
+            { id: "step3", text: "3. Isolating forehead, cheeks & T-zone...", icon: "fa-solid fa-circle-notch fa-spin text-primary" },
+            { id: "step4", text: "4. Analyzing oiliness, texture & redness...", icon: "fa-solid fa-circle-notch fa-spin text-primary" },
+            { id: "step5", text: "5. Formulating skincare regimen...", icon: "fa-solid fa-circle-notch fa-spin text-primary" }
         ];
 
         let index = 0;
@@ -101,13 +137,13 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 clearInterval(interval);
             }
-        }, 600);
+        }, 500);
 
         return interval;
     }
 
-    // 4. SEND IMAGE TO BACKEND FOR ANALYSIS
-    async function sendAnalysisRequest(payload, isFormData = false) {
+    // 5. SEND IMAGE TO BACKEND FOR ANALYSIS
+    async function sendAnalysisRequest(payload) {
         hideAlert();
         loadingBox.style.display = "block";
         loadingBox.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -115,19 +151,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const progressTimer = animateSteps();
 
         try {
-            let fetchOptions = {
-                method: "POST"
-            };
-
-            if (isFormData) {
-                fetchOptions.body = payload;
-            } else {
-                fetchOptions.headers = { "Content-Type": "application/json" };
-                fetchOptions.body = JSON.stringify(payload);
-            }
-
             const response = await fetch("/analyze", {
-                ...fetchOptions
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
@@ -145,7 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 setTimeout(() => {
                     window.location.href = data.redirect || "/result";
-                }, 800);
+                }, 600);
             } else {
                 loadingBox.style.display = "none";
                 showAlert(data.message || "Skin analysis could not be completed. Please try again with better lighting.");
@@ -158,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 5. CAPTURE FROM VIDEO
+    // 6. CAPTURE FROM VIDEO
     function captureAndAnalyze() {
         if (!video.videoWidth) {
             showAlert("Camera video is not ready yet. Please wait a moment.");
@@ -174,36 +201,78 @@ document.addEventListener("DOMContentLoaded", () => {
         stopCamera();
 
         // Show captured image in preview
-        imagePreview.src = base64Image;
-        imagePreview.classList.remove("d-none");
-        video.classList.add("d-none");
+        if (imagePreview) {
+            imagePreview.src = base64Image;
+            imagePreview.classList.remove("d-none");
+            if (cameraStandby) cameraStandby.classList.add("d-none");
+        }
 
-        sendAnalysisRequest({ image: base64Image }, false);
+        sendAnalysisRequest({ image: base64Image });
     }
 
-    // 6. UPLOAD IMAGE FROM FILE
-    if (fileUploadInput) {
-        fileUploadInput.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+    // 7. HANDLE FILE UPLOAD (INPUT & DRAG-AND-DROP)
+    function processImageFile(file) {
+        if (!file || !file.type.startsWith("image/")) {
+            showAlert("Please upload a valid image file (JPEG, PNG, WEBP).");
+            return;
+        }
 
-            stopCamera();
+        if (file.size > 10 * 1024 * 1024) {
+            showAlert("The selected file exceeds the 10MB size limit.");
+            return;
+        }
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const base64 = event.target.result;
+        stopCamera();
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const base64 = event.target.result;
+            if (imagePreview) {
                 imagePreview.src = base64;
                 imagePreview.classList.remove("d-none");
-                video.classList.add("d-none");
+                if (cameraStandby) cameraStandby.classList.add("d-none");
+            }
+            sendAnalysisRequest({ image: base64 });
+        };
+        reader.readAsDataURL(file);
+    }
 
-                sendAnalysisRequest({ image: base64 }, false);
-            };
-            reader.readAsDataURL(file);
+    if (fileUploadInput) {
+        fileUploadInput.addEventListener("change", (e) => {
+            if (e.target.files && e.target.files[0]) {
+                processImageFile(e.target.files[0]);
+            }
+        });
+    }
+
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                processImageFile(e.dataTransfer.files[0]);
+            }
         });
     }
 
     // Event Listeners
-    if (startBtn) startBtn.addEventListener("click", startCamera);
+    if (standbyStartBtn) standbyStartBtn.addEventListener("click", () => startCamera("user"));
+    if (startBtn) startBtn.addEventListener("click", () => startCamera("user"));
     if (captureBtn) captureBtn.addEventListener("click", captureAndAnalyze);
+    if (flipBtn) flipBtn.addEventListener("click", flipCamera);
     if (stopBtn) stopBtn.addEventListener("click", stopCamera);
 });

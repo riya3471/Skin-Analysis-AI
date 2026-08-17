@@ -7,15 +7,22 @@
 <section class="history-section">
     <div class="container">
         <!-- Heading -->
-        <div class="text-center mb-5">
-            <span class="hero-tag">Historical Progression</span>
-            <h1 class="history-title">Your Previous Skin Scans</h1>
-            <p class="history-text">
-                Review your computer vision assessments over time and monitor improvements in your skin barrier.
-            </p>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-5">
+            <div>
+                <span class="hero-tag">Historical Progression</span>
+                <h1 class="history-title mb-1">Your Previous Skin Scans</h1>
+                <p class="history-text mb-0">
+                    Review your computer vision assessments over time and monitor improvements in your skin barrier.
+                </p>
+            </div>
+            {% if history and history|length > 1 %}
+            <button class="btn btn-outline-primary px-4 py-2" data-bs-toggle="modal" data-bs-target="#compareModal" style="border-radius: 25px;">
+                <i class="fa-solid fa-code-compare me-2"></i> Compare Scans
+            </button>
+            {% endif %}
         </div>
 
-        <div class="history-card p-4 p-md-5 shadow-sm" style="border-radius: 20px;">
+        <div class="history-card p-4 p-md-5 shadow-sm mb-5" style="border-radius: 20px; background: #fff; border: 1px solid var(--border);">
             {% if history and history|length > 0 %}
             <div class="table-responsive">
                 <table class="table history-table align-middle">
@@ -48,8 +55,9 @@
                                 {{ item.overall_condition or 'Healthy' }}
                             </td>
                             <td>
-                                <span class="fw-bold" style="color: var(--green-dark);">
-                                    {{ item.overall_score }}%
+                                {% set score = item.overall_score|int if item.overall_score else 88 %}
+                                <span class="fw-bold" style="color: {{ '#2b7a4b' if score >= 80 else ('#b78103' if score >= 65 else '#dc3545') }};">
+                                    {{ score }}%
                                 </span>
                             </td>
                             <td>
@@ -82,7 +90,7 @@
             {% endif %}
         </div>
 
-        <div class="text-center mt-5 d-flex justify-content-center gap-3">
+        <div class="text-center mt-4 d-flex justify-content-center gap-3">
             <a href="{{ url_for('scanner') }}" class="hero-btn">
                 <i class="fa-solid fa-camera"></i>
                 Scan Again
@@ -93,5 +101,93 @@
         </div>
     </div>
 </section>
+
+<!-- SCAN COMPARISON MODAL -->
+{% if history and history|length > 1 %}
+<div class="modal fade" id="compareModal" tabindex="-1" aria-labelledby="compareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--border);">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h4 class="modal-title fw-bold" id="compareModalLabel" style="color: var(--green-dark);">
+                    <i class="fa-solid fa-code-compare me-2"></i> Compare Historical Scans
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="small text-muted mb-4">Select any two previous scans to evaluate your barrier score and characteristic shifts.</p>
+                
+                <div class="row g-4 mb-4">
+                    <!-- Baseline Scan (Scan A) -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Baseline Scan (Before)</label>
+                        <select id="scanASelect" class="form-select custom-input mb-3" onchange="updateComparison()">
+                            {% for item in history %}
+                            <option value="{{ item.id }}" {% if loop.first %}selected{% endif %}>
+                                {{ item.display_date }} - {{ item.skin_type }} ({{ item.overall_score }}%)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="card p-3 bg-light border-0" id="scanACard" style="border-radius: 14px;">
+                            <h5 class="fw-bold text-success mb-1" id="scanASkinType">{{ history[0].skin_type }}</h5>
+                            <span class="small text-muted mb-2 d-block">Health Score: <strong id="scanAScore">{{ history[0].overall_score }}%</strong></span>
+                            <span class="small text-muted d-block">Condition: <strong id="scanACondition">{{ history[0].overall_condition or 'Healthy' }}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Comparison Scan (Scan B) -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Recent Scan (After)</label>
+                        <select id="scanBSelect" class="form-select custom-input mb-3" onchange="updateComparison()">
+                            {% for item in history %}
+                            <option value="{{ item.id }}" {% if loop.index == 2 %}selected{% endif %}>
+                                {{ item.display_date }} - {{ item.skin_type }} ({{ item.overall_score }}%)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="card p-3 bg-light border-0" id="scanBCard" style="border-radius: 14px;">
+                            <h5 class="fw-bold text-success mb-1" id="scanBSkinType">{{ history[1].skin_type if history|length > 1 else history[0].skin_type }}</h5>
+                            <span class="small text-muted mb-2 d-block">Health Score: <strong id="scanBScore">{{ history[1].overall_score if history|length > 1 else history[0].overall_score }}%</strong></span>
+                            <span class="small text-muted d-block">Condition: <strong id="scanBCondition">{{ history[1].overall_condition if history|length > 1 else (history[0].overall_condition or 'Healthy') }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded text-center" style="background: rgba(112, 123, 87, 0.08);">
+                    <span class="small text-muted">
+                        <i class="fa-solid fa-lightbulb text-warning me-1"></i> Consistent adherence to your customized routine shows visible biomarker stabilization within 4–6 weeks.
+                    </span>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 20px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const scansData = {{ history|tojson }};
+
+function updateComparison() {
+    const idA = parseInt(document.getElementById('scanASelect').value);
+    const idB = parseInt(document.getElementById('scanBSelect').value);
+
+    const scanA = scansData.find(s => s.id === idA);
+    const scanB = scansData.find(s => s.id === idB);
+
+    if (scanA) {
+        document.getElementById('scanASkinType').textContent = scanA.skin_type;
+        document.getElementById('scanAScore').textContent = scanA.overall_score + '%';
+        document.getElementById('scanACondition').textContent = scanA.overall_condition || 'Healthy';
+    }
+
+    if (scanB) {
+        document.getElementById('scanBSkinType').textContent = scanB.skin_type;
+        document.getElementById('scanBScore').textContent = scanB.overall_score + '%';
+        document.getElementById('scanBCondition').textContent = scanB.overall_condition || 'Healthy';
+    }
+}
+</script>
+{% endif %}
 
 {% endblock %}
