@@ -84,52 +84,7 @@
             </div>
         </div>
 
-        <!-- ANALYZED FACIAL REGIONS (CV CROPS SHOWCASE) -->
-        {% if result.image_paths %}
-        <div class="mb-5">
-            <h3 class="mb-3 fw-bold" style="color: var(--green-dark); font-size: 22px;">
-                <i class="fa-solid fa-expand me-2"></i> Analyzed Facial Regions
-            </h3>
-            <div class="row g-3">
-                <div class="col-6 col-md-3">
-                    <div class="crop-preview-card p-2 text-center shadow-sm">
-                        <img src="{{ url_for('serve_uploads', filename=result.image_paths.face.replace('uploads/', '')) }}" 
-                             alt="Full Face Crop" class="crop-preview-img rounded mb-2"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/hero.png') }}';">
-                        <h6 class="small fw-bold mb-0 text-dark">Cropped Facial Frame</h6>
-                        <span class="text-muted" style="font-size: 0.75rem;">Landmarks Aligned</span>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="crop-preview-card p-2 text-center shadow-sm">
-                        <img src="{{ url_for('serve_uploads', filename=result.image_paths.forehead.replace('uploads/', '')) }}" 
-                             alt="Forehead Region" class="crop-preview-img rounded mb-2"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/hero.png') }}';">
-                        <h6 class="small fw-bold mb-0 text-dark">Forehead (T-Zone)</h6>
-                        <span class="text-muted" style="font-size: 0.75rem;">Sebum & Shine Map</span>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="crop-preview-card p-2 text-center shadow-sm">
-                        <img src="{{ url_for('serve_uploads', filename=result.image_paths.left_cheek.replace('uploads/', '')) }}" 
-                             alt="Left Cheek" class="crop-preview-img rounded mb-2"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/hero.png') }}';">
-                        <h6 class="small fw-bold mb-0 text-dark">Left Cheek Zone</h6>
-                        <span class="text-muted" style="font-size: 0.75rem;">Texture & Redness</span>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="crop-preview-card p-2 text-center shadow-sm">
-                        <img src="{{ url_for('serve_uploads', filename=result.image_paths.right_cheek.replace('uploads/', '')) }}" 
-                             alt="Right Cheek" class="crop-preview-img rounded mb-2"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/hero.png') }}';">
-                        <h6 class="small fw-bold mb-0 text-dark">Right Cheek Zone</h6>
-                        <span class="text-muted" style="font-size: 0.75rem;">Pore & Hydration Map</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+
 
         <!-- 6 BIOMARKER METRICS GRID -->
         <h3 class="mb-4 fw-bold" style="color: var(--green-dark); font-size: 22px;">
