@@ -25,6 +25,7 @@
                                 name="full_name"
                                 class="form-control custom-input"
                                 placeholder="Your full name"
+                                autocomplete="name"
                                 required>
                         </div>
 
@@ -35,6 +36,7 @@
                                 name="email"
                                 class="form-control custom-input"
                                 placeholder="name@example.com"
+                                autocomplete="email"
                                 required>
                         </div>
 
@@ -48,6 +50,7 @@
                                     class="form-control custom-input"
                                     placeholder="••••••••"
                                     minlength="6"
+                                    autocomplete="new-password"
                                     oninput="checkPasswordStrength(this.value)"
                                     required>
                                 <button type="button" class="toggle-password-btn" data-target="regPassword" aria-label="Toggle password visibility">
@@ -74,6 +77,7 @@
                                     class="form-control custom-input"
                                     placeholder="••••••••"
                                     minlength="6"
+                                    autocomplete="new-password"
                                     oninput="checkPasswordMatch()"
                                     required>
                                 <button type="button" class="toggle-password-btn" data-target="regConfirmPassword" aria-label="Toggle password visibility">
