@@ -120,8 +120,7 @@ export default function History() {
                         <td className="text-end">
                           <Link
                             to={`/result?id=${item.id}`}
-                            className="hero-btn-outline"
-                            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+                            className="table-action-btn"
                           >
                             <i className="fa-regular fa-eye me-1"></i> View Report
                           </Link>

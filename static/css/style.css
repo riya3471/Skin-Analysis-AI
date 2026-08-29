@@ -4766,4 +4766,35 @@ padding:50px 25px;
     box-shadow: 0 4px 12px rgba(112, 123, 87, 0.08) !important;
 }
 
+/* History Section Spacing & Table Action Buttons */
+.history-section {
+    padding-top: 130px !important;
+    padding-bottom: 90px !important;
+}
+
+.table-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(112, 123, 87, 0.1);
+    color: var(--green-dark) !important;
+    border: 1px solid rgba(112, 123, 87, 0.28);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+    cursor: pointer;
+}
+
+.table-action-btn:hover {
+    background: var(--green-dark);
+    color: #ffffff !important;
+    border-color: var(--green-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(89, 101, 71, 0.22);
+}
+
+
 
