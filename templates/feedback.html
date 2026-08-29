@@ -108,6 +108,47 @@
                             <input type="hidden" name="rating" id="ratingInput" value="5">
                         </div>
 
+                        <!-- Category Selection -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted mb-2">Review Topic</label>
+                            <div class="d-flex flex-wrap gap-2" id="categoryChipsContainer">
+                                <button type="button" class="feedback-chip active" data-cat="Scan Accuracy">Scan Accuracy</button>
+                                <button type="button" class="feedback-chip" data-cat="Routine Regimen">Routine Regimen</button>
+                                <button type="button" class="feedback-chip" data-cat="Product Matches">Product Matches</button>
+                                <button type="button" class="feedback-chip" data-cat="UI & Experience">UI & Experience</button>
+                                <button type="button" class="feedback-chip" data-cat="General Feedback">General Feedback</button>
+                            </div>
+                            <input type="hidden" name="category" id="categoryInput" value="Scan Accuracy">
+                        </div>
+
+                        <!-- Author Name & Skin Type -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted mb-1">Your Name</label>
+                                <input
+                                    type="text"
+                                    name="user_name"
+                                    class="feedback-input-box"
+                                    placeholder="e.g. Maya Patel"
+                                    value="{{ g.user.name if g.user else '' }}"
+                                />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted mb-1">Your Skin Type</label>
+                                <select
+                                    name="skin_type"
+                                    class="feedback-input-box"
+                                    style="cursor: pointer;"
+                                >
+                                    <option value="Combination" selected>Combination</option>
+                                    <option value="Oily">Oily</option>
+                                    <option value="Dry">Dry</option>
+                                    <option value="Normal">Normal</option>
+                                    <option value="Sensitive">Sensitive</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <!-- Feedback & Comments -->
                         <div class="mb-4">
                             <label class="form-label small fw-bold text-muted mb-1">Detailed Experience</label>
@@ -122,7 +163,7 @@
                         <button type="submit" class="hero-btn w-100 justify-content-center shadow-sm"
                             style="border-radius: 14px; padding: 14px 24px; font-size: 0.95rem;">
                             <i class="fa-solid fa-paper-plane me-2"></i>
-                            Submit Feedback
+                            Publish Feedback
                         </button>
                     </form>
                 </div>
@@ -213,6 +254,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     s.classList.remove("active");
                 }
             });
+        });
+    });
+
+    const categoryChips = document.querySelectorAll("#categoryChipsContainer .feedback-chip");
+    const categoryInput = document.getElementById("categoryInput");
+    categoryChips.forEach(chip => {
+        chip.addEventListener("click", () => {
+            categoryChips.forEach(c => c.classList.remove("active"));
+            chip.classList.add("active");
+            if (categoryInput) categoryInput.value = chip.getAttribute("data-cat");
         });
     });
 });
