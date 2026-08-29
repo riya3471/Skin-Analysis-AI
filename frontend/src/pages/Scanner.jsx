@@ -488,34 +488,105 @@ export default function Scanner() {
                     AI Diagnostic Parameters
                   </h3>
                 </div>
-                <p className="text-muted small mb-4">
+                <p className="text-muted small mb-3">
                   Our cross-calibrated computer vision algorithms evaluate 6 clinical skin biomarkers in real-time:
                 </p>
 
-                <div className="analysis-result">
-                  <div className="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span><i className="fa-solid fa-droplet text-primary me-2"></i> Skin Type Classification</span>
-                    <strong className="text-success small"><i className="fa-solid fa-check-circle me-1"></i> Multi-Zone Sebum</strong>
+                <div className="diagnostic-param-list d-flex flex-column gap-2 mb-4">
+                  {/* Parameter 1 */}
+                  <div className="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style={{ background: '#faf8f5', border: '1px solid rgba(233, 226, 215, 0.75)' }}>
+                    <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                      <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '32px', height: '32px', background: 'rgba(13, 110, 253, 0.1)', color: '#0d6efd' }}>
+                        <i className="fa-solid fa-droplet" style={{ fontSize: '0.85rem' }}></i>
+                      </div>
+                      <div className="text-truncate">
+                        <div className="fw-semibold text-dark" style={{ fontSize: '0.86rem', lineHeight: '1.2' }}>Skin Classification</div>
+                        <div className="text-muted small" style={{ fontSize: '0.72rem' }}>Sebum distribution map</div>
+                      </div>
+                    </div>
+                    <span className="badge rounded-pill flex-shrink-0 ms-2" style={{ background: 'rgba(112, 123, 87, 0.12)', color: 'var(--green-dark)', fontSize: '0.72rem', fontWeight: '600' }}>
+                      <i className="fa-solid fa-check me-1 text-success"></i> Multi-Zone
+                    </span>
                   </div>
-                  <div className="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span><i className="fa-solid fa-sun text-warning me-2"></i> Oiliness & Specular Reflection</span>
-                    <strong className="text-success small"><i className="fa-solid fa-check-circle me-1"></i> HSV Saliency</strong>
+
+                  {/* Parameter 2 */}
+                  <div className="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style={{ background: '#faf8f5', border: '1px solid rgba(233, 226, 215, 0.75)' }}>
+                    <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                      <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '32px', height: '32px', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}>
+                        <i className="fa-solid fa-sun" style={{ fontSize: '0.85rem' }}></i>
+                      </div>
+                      <div className="text-truncate">
+                        <div className="fw-semibold text-dark" style={{ fontSize: '0.86rem', lineHeight: '1.2' }}>Oiliness & Shine</div>
+                        <div className="text-muted small" style={{ fontSize: '0.72rem' }}>Specular reflection & glare</div>
+                      </div>
+                    </div>
+                    <span className="badge rounded-pill flex-shrink-0 ms-2" style={{ background: 'rgba(112, 123, 87, 0.12)', color: 'var(--green-dark)', fontSize: '0.72rem', fontWeight: '600' }}>
+                      <i className="fa-solid fa-check me-1 text-success"></i> HSV Saliency
+                    </span>
                   </div>
-                  <div className="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span><i className="fa-solid fa-water text-info me-2"></i> Dryness & Barrier Hydration</span>
-                    <strong className="text-success small"><i className="fa-solid fa-check-circle me-1"></i> Moisture Gradient</strong>
+
+                  {/* Parameter 3 */}
+                  <div className="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style={{ background: '#faf8f5', border: '1px solid rgba(233, 226, 215, 0.75)' }}>
+                    <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                      <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '32px', height: '32px', background: 'rgba(13, 202, 240, 0.1)', color: '#0dcaf0' }}>
+                        <i className="fa-solid fa-water" style={{ fontSize: '0.85rem' }}></i>
+                      </div>
+                      <div className="text-truncate">
+                        <div className="fw-semibold text-dark" style={{ fontSize: '0.86rem', lineHeight: '1.2' }}>Dryness & Hydration</div>
+                        <div className="text-muted small" style={{ fontSize: '0.72rem' }}>Moisture level gradient</div>
+                      </div>
+                    </div>
+                    <span className="badge rounded-pill flex-shrink-0 ms-2" style={{ background: 'rgba(112, 123, 87, 0.12)', color: 'var(--green-dark)', fontSize: '0.72rem', fontWeight: '600' }}>
+                      <i className="fa-solid fa-check me-1 text-success"></i> Barrier Index
+                    </span>
                   </div>
-                  <div className="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span><i className="fa-solid fa-gem text-secondary me-2"></i> Micro-Texture & Smoothness</span>
-                    <strong className="text-success small"><i className="fa-solid fa-check-circle me-1"></i> Laplacian Variance</strong>
+
+                  {/* Parameter 4 */}
+                  <div className="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style={{ background: '#faf8f5', border: '1px solid rgba(233, 226, 215, 0.75)' }}>
+                    <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                      <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '32px', height: '32px', background: 'rgba(108, 117, 125, 0.1)', color: '#6c757d' }}>
+                        <i className="fa-solid fa-gem" style={{ fontSize: '0.85rem' }}></i>
+                      </div>
+                      <div className="text-truncate">
+                        <div className="fw-semibold text-dark" style={{ fontSize: '0.86rem', lineHeight: '1.2' }}>Micro-Texture & Pores</div>
+                        <div className="text-muted small" style={{ fontSize: '0.72rem' }}>Smoothness & surface relief</div>
+                      </div>
+                    </div>
+                    <span className="badge rounded-pill flex-shrink-0 ms-2" style={{ background: 'rgba(112, 123, 87, 0.12)', color: 'var(--green-dark)', fontSize: '0.72rem', fontWeight: '600' }}>
+                      <i className="fa-solid fa-check me-1 text-success"></i> Laplacian
+                    </span>
                   </div>
-                  <div className="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span><i className="fa-solid fa-heart text-danger me-2"></i> Redness & Sensitivity Index</span>
-                    <strong className="text-success small"><i className="fa-solid fa-check-circle me-1"></i> Hemoglobin Delta</strong>
+
+                  {/* Parameter 5 */}
+                  <div className="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style={{ background: '#faf8f5', border: '1px solid rgba(233, 226, 215, 0.75)' }}>
+                    <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                      <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '32px', height: '32px', background: 'rgba(220, 53, 69, 0.1)', color: '#dc3545' }}>
+                        <i className="fa-solid fa-heart-pulse" style={{ fontSize: '0.85rem' }}></i>
+                      </div>
+                      <div className="text-truncate">
+                        <div className="fw-semibold text-dark" style={{ fontSize: '0.86rem', lineHeight: '1.2' }}>Redness & Sensitivity</div>
+                        <div className="text-muted small" style={{ fontSize: '0.72rem' }}>Hemoglobin vascular delta</div>
+                      </div>
+                    </div>
+                    <span className="badge rounded-pill flex-shrink-0 ms-2" style={{ background: 'rgba(112, 123, 87, 0.12)', color: 'var(--green-dark)', fontSize: '0.72rem', fontWeight: '600' }}>
+                      <i className="fa-solid fa-check me-1 text-success"></i> Erythema
+                    </span>
                   </div>
-                  <div className="dashboard-item d-flex justify-content-between align-items-center py-2">
-                    <span><i className="fa-solid fa-circle-half-stroke text-dark me-2"></i> Pigmentation & Tone Uniformity</span>
-                    <strong className="text-success small"><i className="fa-solid fa-check-circle me-1"></i> Melanin Map</strong>
+
+                  {/* Parameter 6 */}
+                  <div className="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style={{ background: '#faf8f5', border: '1px solid rgba(233, 226, 215, 0.75)' }}>
+                    <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                      <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '32px', height: '32px', background: 'rgba(112, 123, 87, 0.15)', color: 'var(--green-dark)' }}>
+                        <i className="fa-solid fa-circle-half-stroke" style={{ fontSize: '0.85rem' }}></i>
+                      </div>
+                      <div className="text-truncate">
+                        <div className="fw-semibold text-dark" style={{ fontSize: '0.86rem', lineHeight: '1.2' }}>Tone & Pigmentation</div>
+                        <div className="text-muted small" style={{ fontSize: '0.72rem' }}>Melanin distribution index</div>
+                      </div>
+                    </div>
+                    <span className="badge rounded-pill flex-shrink-0 ms-2" style={{ background: 'rgba(112, 123, 87, 0.12)', color: 'var(--green-dark)', fontSize: '0.72rem', fontWeight: '600' }}>
+                      <i className="fa-solid fa-check me-1 text-success"></i> Melanin Map
+                    </span>
                   </div>
                 </div>
               </div>

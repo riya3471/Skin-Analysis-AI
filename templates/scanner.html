@@ -141,34 +141,105 @@
                                 AI Diagnostic Parameters
                             </h3>
                         </div>
-                        <p class="text-muted small mb-4">
+                        <p class="text-muted small mb-3">
                             Our cross-calibrated computer vision algorithms evaluate 6 clinical skin biomarkers in real-time:
                         </p>
 
-                        <div class="analysis-result">
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-droplet text-primary me-2"></i> Skin Type Classification</span>
-                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Multi-Zone Sebum</strong>
+                        <div class="diagnostic-param-list d-flex flex-column gap-2 mb-4">
+                            <!-- Parameter 1 -->
+                            <div class="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style="background: #faf8f5; border: 1px solid rgba(233, 226, 215, 0.75);">
+                                <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
+                                        <i class="fa-solid fa-droplet" style="font-size: 0.85rem;"></i>
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-dark" style="font-size: 0.86rem; line-height: 1.2;">Skin Classification</div>
+                                        <div class="text-muted small" style="font-size: 0.72rem;">Sebum distribution map</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill flex-shrink-0 ms-2" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.72rem; font-weight: 600;">
+                                    <i class="fa-solid fa-check me-1 text-success"></i> Multi-Zone
+                                </span>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-sun text-warning me-2"></i> Oiliness & Specular Reflection</span>
-                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> HSV Saliency</strong>
+
+                            <!-- Parameter 2 -->
+                            <div class="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style="background: #faf8f5; border: 1px solid rgba(233, 226, 215, 0.75);">
+                                <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: rgba(217, 119, 6, 0.1); color: #d97706;">
+                                        <i class="fa-solid fa-sun" style="font-size: 0.85rem;"></i>
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-dark" style="font-size: 0.86rem; line-height: 1.2;">Oiliness & Shine</div>
+                                        <div class="text-muted small" style="font-size: 0.72rem;">Specular reflection & glare</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill flex-shrink-0 ms-2" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.72rem; font-weight: 600;">
+                                    <i class="fa-solid fa-check me-1 text-success"></i> HSV Saliency
+                                </span>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-water text-info me-2"></i> Dryness & Barrier Hydration</span>
-                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Moisture Gradient</strong>
+
+                            <!-- Parameter 3 -->
+                            <div class="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style="background: #faf8f5; border: 1px solid rgba(233, 226, 215, 0.75);">
+                                <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: rgba(13, 202, 240, 0.1); color: #0dcaf0;">
+                                        <i class="fa-solid fa-water" style="font-size: 0.85rem;"></i>
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-dark" style="font-size: 0.86rem; line-height: 1.2;">Dryness & Hydration</div>
+                                        <div class="text-muted small" style="font-size: 0.72rem;">Moisture level gradient</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill flex-shrink-0 ms-2" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.72rem; font-weight: 600;">
+                                    <i class="fa-solid fa-check me-1 text-success"></i> Barrier Index
+                                </span>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-gem text-secondary me-2"></i> Micro-Texture & Smoothness</span>
-                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Laplacian Variance</strong>
+
+                            <!-- Parameter 4 -->
+                            <div class="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style="background: #faf8f5; border: 1px solid rgba(233, 226, 215, 0.75);">
+                                <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: rgba(108, 117, 125, 0.1); color: #6c757d;">
+                                        <i class="fa-solid fa-gem" style="font-size: 0.85rem;"></i>
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-dark" style="font-size: 0.86rem; line-height: 1.2;">Micro-Texture & Pores</div>
+                                        <div class="text-muted small" style="font-size: 0.72rem;">Smoothness & surface relief</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill flex-shrink-0 ms-2" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.72rem; font-weight: 600;">
+                                    <i class="fa-solid fa-check me-1 text-success"></i> Laplacian
+                                </span>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <span><i class="fa-solid fa-heart text-danger me-2"></i> Redness & Sensitivity Index</span>
-                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Hemoglobin Delta</strong>
+
+                            <!-- Parameter 5 -->
+                            <div class="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style="background: #faf8f5; border: 1px solid rgba(233, 226, 215, 0.75);">
+                                <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+                                        <i class="fa-solid fa-heart-pulse" style="font-size: 0.85rem;"></i>
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-dark" style="font-size: 0.86rem; line-height: 1.2;">Redness & Sensitivity</div>
+                                        <div class="text-muted small" style="font-size: 0.72rem;">Hemoglobin vascular delta</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill flex-shrink-0 ms-2" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.72rem; font-weight: 600;">
+                                    <i class="fa-solid fa-check me-1 text-success"></i> Erythema
+                                </span>
                             </div>
-                            <div class="dashboard-item d-flex justify-content-between align-items-center py-2">
-                                <span><i class="fa-solid fa-circle-half-stroke text-dark me-2"></i> Pigmentation & Tone Uniformity</span>
-                                <strong class="text-success small"><i class="fa-solid fa-check-circle me-1"></i> Melanin Map</strong>
+
+                            <!-- Parameter 6 -->
+                            <div class="param-item-row d-flex align-items-center justify-content-between p-2 px-3 rounded-3" style="background: #faf8f5; border: 1px solid rgba(233, 226, 215, 0.75);">
+                                <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; background: rgba(112, 123, 87, 0.15); color: var(--green-dark);">
+                                        <i class="fa-solid fa-circle-half-stroke" style="font-size: 0.85rem;"></i>
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-dark" style="font-size: 0.86rem; line-height: 1.2;">Tone & Pigmentation</div>
+                                        <div class="text-muted small" style="font-size: 0.72rem;">Melanin distribution index</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill flex-shrink-0 ms-2" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.72rem; font-weight: 600;">
+                                    <i class="fa-solid fa-check me-1 text-success"></i> Melanin Map
+                                </span>
                             </div>
                         </div>
                     </div>

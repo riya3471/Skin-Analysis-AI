@@ -4745,4 +4745,22 @@ padding:50px 25px;
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 22px rgba(112, 123, 87, 0.15) !important;
 }
+
+/* Scanner Top Spacing & Diagnostic Parameter List */
+.scanner-section {
+    padding-top: 130px !important;
+    padding-bottom: 90px !important;
+}
+
+.param-item-row {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.param-item-row:hover {
+    transform: translateX(4px);
+    background: #ffffff !important;
+    border-color: rgba(112, 123, 87, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(112, 123, 87, 0.08) !important;
+}
+
 
