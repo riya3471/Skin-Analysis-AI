@@ -674,11 +674,13 @@ export default function Result() {
             <i className="fa-solid fa-camera me-2"></i>
             Start New Scan
           </Link>
-          <Link to="/dashboard" className="btn btn-outline-primary px-4 py-2" style={{ borderRadius: '30px' }}>
-            <i className="fa-solid fa-chart-pie me-1"></i> View Dashboard
+          <Link to="/dashboard" className="hero-btn-outline">
+            <i className="fa-solid fa-chart-pie me-2"></i>
+            View Dashboard
           </Link>
-          <Link to="/history" className="btn btn-outline-secondary px-4 py-2" style={{ borderRadius: '30px' }}>
-            <i className="fa-solid fa-clock-rotate-left me-1"></i> Scan History
+          <Link to="/history" className="hero-btn-outline">
+            <i className="fa-solid fa-clock-rotate-left me-2"></i>
+            Scan History
           </Link>
         </div>
       </div>

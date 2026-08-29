@@ -365,7 +365,7 @@ export default function Dashboard() {
                   <i className="fa-solid fa-file-waveform me-2"></i> Latest Diagnostic Summary
                 </h3>
                 {latestScan && (
-                  <Link to={`/result?id=${latestScan.id}`} className="btn btn-sm btn-outline-primary" style={{ borderRadius: '20px' }}>
+                  <Link to={`/result?id=${latestScan.id}`} className="hero-btn-outline" style={{ padding: '8px 20px', fontSize: '0.88rem' }}>
                     View Full Diagnostic Report <i className="fa-solid fa-arrow-right ms-1"></i>
                   </Link>
                 )}
@@ -406,7 +406,7 @@ export default function Dashboard() {
                   <Link to="/scanner" className="hero-btn">
                     <i className="fa-solid fa-camera me-2"></i> Quick Scan
                   </Link>
-                  <Link to="/history" className="btn btn-outline-primary px-4 py-2" style={{ borderRadius: '30px' }}>
+                  <Link to="/history" className="hero-btn-outline">
                     <i className="fa-solid fa-clock-rotate-left me-1"></i> View Scan History
                   </Link>
                 </div>

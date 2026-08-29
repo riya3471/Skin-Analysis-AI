@@ -16,7 +16,7 @@
                 </p>
             </div>
             {% if history and history|length > 1 %}
-            <button class="btn btn-outline-primary px-4 py-2" data-bs-toggle="modal" data-bs-target="#compareModal" style="border-radius: 25px;">
+            <button class="hero-btn-outline" data-bs-toggle="modal" data-bs-target="#compareModal">
                 <i class="fa-solid fa-code-compare me-2"></i> Compare Scans
             </button>
             {% endif %}
@@ -66,7 +66,7 @@
                                 </span>
                             </td>
                             <td class="text-end">
-                                <a href="{{ url_for('result', id=item.id) }}" class="btn btn-sm btn-outline-primary px-3 py-1" style="border-radius: 20px;">
+                                <a href="{{ url_for('result', id=item.id) }}" class="hero-btn-outline" style="padding: 6px 16px; font-size: 0.82rem;">
                                     <i class="fa-regular fa-eye me-1"></i> View Report
                                 </a>
                             </td>
@@ -95,7 +95,7 @@
                 <i class="fa-solid fa-camera"></i>
                 Scan Again
             </a>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary px-4 py-2" style="border-radius: 30px;">
+            <a href="{{ url_for('dashboard') }}" class="hero-btn-outline">
                 <i class="fa-solid fa-chart-pie me-1"></i> Dashboard
             </a>
         </div>

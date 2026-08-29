@@ -4717,4 +4717,32 @@ padding:50px 25px;
     font-weight: 700;
     font-size: 0.95rem;
     border: 1.5px solid rgba(112, 123, 87, 0.2);
-}
+}
+
+/* Luxury Outline Action Buttons */
+.hero-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #ffffff;
+    color: var(--green-dark) !important;
+    border: 1.5px solid rgba(112, 123, 87, 0.38) !important;
+    padding: 12px 28px !important;
+    border-radius: 50px !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    box-shadow: 0 4px 14px rgba(112, 123, 87, 0.06) !important;
+    transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+    cursor: pointer;
+}
+
+.hero-btn-outline:hover {
+    background: rgba(112, 123, 87, 0.08) !important;
+    border-color: var(--green-dark) !important;
+    color: var(--green-dark) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 22px rgba(112, 123, 87, 0.15) !important;
+}
+

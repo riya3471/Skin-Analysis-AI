@@ -57,9 +57,8 @@ export default function History() {
           </div>
           {history && history.length > 1 && (
             <button
-              className="btn btn-outline-primary px-4 py-2"
+              className="hero-btn-outline"
               onClick={() => setCompareModalOpen(true)}
-              style={{ borderRadius: '25px' }}
             >
               <i className="fa-solid fa-code-compare me-2"></i> Compare Scans
             </button>
@@ -121,8 +120,8 @@ export default function History() {
                         <td className="text-end">
                           <Link
                             to={`/result?id=${item.id}`}
-                            className="btn btn-sm btn-outline-primary px-3 py-1"
-                            style={{ borderRadius: '20px' }}
+                            className="hero-btn-outline"
+                            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
                           >
                             <i className="fa-regular fa-eye me-1"></i> View Report
                           </Link>
@@ -153,7 +152,7 @@ export default function History() {
             <i className="fa-solid fa-camera me-2"></i>
             Scan Again
           </Link>
-          <Link to="/dashboard" className="btn btn-outline-primary px-4 py-2" style={{ borderRadius: '30px' }}>
+          <Link to="/dashboard" className="hero-btn-outline">
             <i className="fa-solid fa-chart-pie me-1"></i> Dashboard
           </Link>
         </div>
