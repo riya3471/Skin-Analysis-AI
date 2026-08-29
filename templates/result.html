@@ -337,26 +337,50 @@
         </div>
 
         <!-- CURATED PRODUCT & BRAND RECOMMENDATIONS -->
+        <!-- RECOMMENDED PRODUCTS & BRANDS -->
         {% if result.product_recommendations %}
         <div class="mb-5">
-            <h3 class="mb-2 fw-bold" style="color: var(--green-dark); font-size: 22px;">
-                <i class="fa-solid fa-bag-shopping me-2"></i> Recommended Products & Brands
-            </h3>
-            <p class="small text-muted mb-4">Dermatologist-approved products matched to your scan biomarkers. Curated from clinically validated brands.</p>
+            <div class="mb-4">
+                <h3 class="mb-1 fw-bold" style="color: var(--green-dark); font-size: 22px;">
+                    <i class="fa-solid fa-bag-shopping me-2"></i> Recommended Products & Brands
+                </h3>
+                <p class="small text-muted mb-0">Dermatologist-recommended products matched to your skin biomarkers.</p>
+            </div>
 
             <div class="row g-3">
                 {% for prod in result.product_recommendations %}
-                <div class="col-lg-4 col-md-6">
-                    <div class="product-card h-100 p-3 shadow-sm" style="border-radius: 16px; background: #fff; border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease;">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge px-2 py-1 rounded-pill" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.7rem;">{{ prod.category }}</span>
-                            <span class="badge bg-dark text-white px-2 py-1 rounded-pill" style="font-size: 0.7rem;">{{ prod.brand }}</span>
+                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                    <div class="product-card h-100 p-3 shadow-sm d-flex flex-column justify-content-between" style="border-radius: 16px; background: #fff; border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease;">
+                        <div>
+                            <!-- Clickable Product Image Link -->
+                            <a href="{{ prod.buy_url or '#' }}" {% if prod.buy_url %}target="_blank" rel="noopener noreferrer"{% else %}onclick="event.preventDefault();"{% endif %} class="product-image-link d-block mb-3 text-decoration-none" title="{{ 'View ' ~ prod.product ~ ' on store' if prod.buy_url else 'Product Image' }}" style="cursor: {{ 'pointer' if prod.buy_url else 'default' }};">
+                                <div class="product-image-placeholder text-center d-flex align-items-center justify-content-center" style="background: rgba(112, 123, 87, 0.05); border-radius: 12px; height: 110px; border: 1px dashed rgba(0, 0, 0, 0.1); overflow: hidden; transition: border-color 0.2s ease, transform 0.2s ease;">
+                                    {% if prod.image_url %}
+                                    <img src="{{ prod.image_url }}" alt="{{ prod.product }}" style="max-height: 90px; max-width: 100%; object-fit: contain;">
+                                    {% else %}
+                                    <div class="text-muted d-flex flex-column align-items-center justify-content-center">
+                                        <i class="fa-solid fa-bottle-droplet fs-3 mb-1 text-secondary" style="opacity: 0.45;"></i>
+                                        <span class="small text-muted" style="font-size: 0.7rem;">Product Image</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Brand & Category Badges -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge px-2 py-1 rounded-pill" style="background: rgba(112, 123, 87, 0.12); color: var(--green-dark); font-size: 0.72rem;">{{ prod.category }}</span>
+                                <span class="badge bg-dark text-white px-2 py-1 rounded-pill" style="font-size: 0.7rem;">{{ prod.brand }}</span>
+                            </div>
+
+                            <!-- Product Name -->
+                            <h6 class="fw-bold mb-1" style="color: var(--green-dark); font-size: 0.95rem;">{{ prod.product }}</h6>
+                            <p class="small text-muted mb-2" style="line-height: 1.45; font-size: 0.8rem;">{{ prod.note }}</p>
                         </div>
-                        <h6 class="fw-bold mb-1" style="color: var(--green-dark); font-size: 0.95rem;">{{ prod.product }}</h6>
-                        <p class="small text-muted mb-2" style="line-height: 1.5; font-size: 0.8rem;">{{ prod.note }}</p>
-                        <div class="d-flex align-items-center gap-1">
-                            <i class="fa-solid fa-leaf" style="color: var(--green); font-size: 0.7rem;"></i>
-                            <span class="small" style="color: var(--green-dark); font-size: 0.75rem;">{{ prod.ingredient }}</span>
+
+                        <!-- Key Ingredient Tag -->
+                        <div class="d-flex align-items-center gap-1 pt-2 border-top">
+                            <i class="fa-solid fa-leaf text-success" style="font-size: 0.7rem;"></i>
+                            <span class="small fw-semibold text-muted" style="font-size: 0.75rem;">{{ prod.ingredient }}</span>
                         </div>
                     </div>
                 </div>

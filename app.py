@@ -195,6 +195,26 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/api/me")
+def api_me():
+    user_id = session.get("user_id")
+    if user_id:
+        user = get_user_by_id(user_id)
+        if user:
+            notifications = get_user_notifications(user_id)
+            unread_count = sum(1 for n in notifications if not n.get("is_read"))
+            return jsonify({
+                "user": {
+                    "id": user["id"],
+                    "full_name": user["full_name"],
+                    "email": user["email"],
+                    "role": user.get("role", "user"),
+                },
+                "unread_count": unread_count,
+            })
+    return jsonify({"user": None, "unread_count": 0})
+
+
 # ====================================================================
 # DASHBOARD
 # ====================================================================
@@ -471,6 +491,13 @@ def result():
             result_data = get_scan_by_id(1)
 
     if result_data is None:
+        ingredients_sample = [{"ingredient": "Hyaluronic Acid", "reason": "Deep barrier hydration"}, {"ingredient": "Ceramides", "reason": "Barrier protection"}, {"ingredient": "SPF 50 Sunscreen", "reason": "UV Defense"}]
+        try:
+            from models.recommendations import get_product_recommendations
+            fallback_products = get_product_recommendations(ingredients_sample)
+        except Exception:
+            fallback_products = []
+
         result_data = {
             "skin_type": "Unknown",
             "overall_score": 85.0,
@@ -483,7 +510,8 @@ def result():
             "recommendations": ["Perform a live skin scan to receive tailored skincare steps."],
             "morning_routine": ["Gentle Cleanser", "SPF 50 Sunscreen"],
             "night_routine": ["Double Cleanse", "Moisturizer"],
-            "recommended_ingredients": [{"ingredient": "Hyaluronic Acid", "reason": "Deep barrier hydration"}],
+            "recommended_ingredients": ingredients_sample,
+            "product_recommendations": fallback_products,
             "things_to_avoid": ["Harsh scrubbing"],
             "possible_causes": ["Environmental exposure"],
             "lifestyle_suggestions": ["Drink at least 2L of water daily"]

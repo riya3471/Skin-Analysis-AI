@@ -32,6 +32,8 @@ ENV/
 .idea/
 .vscode/
 
-# Local frontend development folder
-frontend/
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
 

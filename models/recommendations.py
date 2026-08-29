@@ -190,13 +190,17 @@ PRODUCT_CATALOG = {
             "product": "Niacinamide 10% + Zinc 1%",
             "brand": "The Ordinary",
             "category": "Serum",
-            "note": "Balances sebum & minimizes pores. Budget-friendly."
+            "note": "Balances sebum & minimizes pores. Budget-friendly.",
+            "image_url": "/static/products/the_ordinary_niacinamide_10_zinc_1.jpg",
+            "buy_url": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
         },
         {
             "product": "10% Niacinamide Booster",
             "brand": "Paula's Choice",
             "category": "Serum",
-            "note": "Concentrated formula for oil control and brightening."
+            "note": "Concentrated formula for oil control and brightening.",
+            "image_url": "/static/products/paulas_choice_10_niacinamide_booster.jpg",
+            "buy_url": "https://www.paulaschoice.com/10-niacinamide-booster/798.html",
         },
     ],
     "Salicylic Acid": [
@@ -204,13 +208,17 @@ PRODUCT_CATALOG = {
             "product": "BHA Liquid Exfoliant 2%",
             "brand": "Paula's Choice",
             "category": "Exfoliant",
-            "note": "Gold-standard BHA for unclogging pores."
+            "note": "Gold-standard BHA for unclogging pores.",
+            "image_url": "/static/products/paulas_choice_bha_liquid_exfoliant_2.jpg",
+            "buy_url": "https://www.paulaschoice.com/skin-perfecting-2-percent-bha-liquid-exfoliant/201.html",
         },
         {
             "product": "Salicylic Acid Cleanser",
             "brand": "CeraVe",
             "category": "Cleanser",
-            "note": "Gentle daily SA cleanser with ceramides."
+            "note": "Gentle daily SA cleanser with ceramides.",
+            "image_url": "/static/products/cerave_salicylic_acid_cleanser.jpg",
+            "buy_url": "https://www.cerave.com/skincare/cleansers/renewing-sa-cleanser",
         },
     ],
     "Hyaluronic Acid": [
@@ -218,13 +226,17 @@ PRODUCT_CATALOG = {
             "product": "Hyaluronic Acid 2% + B5",
             "brand": "The Ordinary",
             "category": "Serum",
-            "note": "Multi-weight HA for deep and surface hydration."
+            "note": "Multi-weight HA for deep and surface hydration.",
+            "image_url": "/static/products/the_ordinary_hyaluronic_acid_2_b5.jpg",
+            "buy_url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-100398.html",
         },
         {
             "product": "Hydra Power Essence",
             "brand": "COSRX",
             "category": "Essence",
-            "note": "Lightweight hydrating essence with HA."
+            "note": "Lightweight hydrating essence with HA.",
+            "image_url": "/static/products/cosrx_hydra_power_essence.jpg",
+            "buy_url": "https://www.cosrx.com/products/hyaluronic-acid-hydra-power-essence",
         },
     ],
     "Ceramides": [
@@ -232,13 +244,17 @@ PRODUCT_CATALOG = {
             "product": "Moisturizing Cream",
             "brand": "CeraVe",
             "category": "Moisturizer",
-            "note": "Dermatologist-recommended with 3 essential ceramides."
+            "note": "Dermatologist-recommended with 3 essential ceramides.",
+            "image_url": "/static/products/cerave_moisturizing_cream.jpg",
+            "buy_url": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream",
         },
         {
             "product": "Ceramide Ato Concentrate Cream",
             "brand": "Illiyoon",
             "category": "Moisturizer",
-            "note": "K-beauty barrier repair cream for sensitive skin."
+            "note": "K-beauty barrier repair cream for sensitive skin.",
+            "image_url": "/static/products/illiyoon_ceramide_ato_concentrate_cream.jpg",
+            "buy_url": "https://www.amazon.com/s?k=Illiyoon+Ceramide+Ato+Concentrate+Cream",
         },
     ],
     "Ceramide Barrier Cream": [
@@ -246,7 +262,9 @@ PRODUCT_CATALOG = {
             "product": "Moisturizing Cream",
             "brand": "CeraVe",
             "category": "Moisturizer",
-            "note": "MVE technology delivers ceramides over 24 hours."
+            "note": "MVE technology delivers ceramides over 24 hours.",
+            "image_url": "/static/products/cerave_moisturizing_cream.jpg",
+            "buy_url": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream",
         },
     ],
     "Vitamin C": [
@@ -254,19 +272,25 @@ PRODUCT_CATALOG = {
             "product": "C E Ferulic Serum",
             "brand": "SkinCeuticals",
             "category": "Serum",
-            "note": "Clinical-grade 15% L-Ascorbic Acid with antioxidant synergy."
+            "note": "Clinical-grade 15% L-Ascorbic Acid with antioxidant synergy.",
+            "image_url": "/static/products/skinceuticals_c_e_ferulic_serum.jpg",
+            "buy_url": "https://www.skinceuticals.com/skincare/vitamin-c-serums/c-e-ferulic-with-15-l-ascorbic-acid/S24.html",
         },
         {
             "product": "Vitamin C Suspension 23% + HA Spheres 2%",
             "brand": "The Ordinary",
             "category": "Serum",
-            "note": "High-potency vitamin C at an affordable price."
+            "note": "High-potency vitamin C at an affordable price.",
+            "image_url": "/static/products/the_ordinary_vitamin_c_suspension_23.jpg",
+            "buy_url": "https://theordinary.com/en-us/vitamin-c-suspension-23-ha-spheres-2-vitamin-c-100451.html",
         },
         {
             "product": "10% Vitamin C Serum",
             "brand": "Minimalist",
             "category": "Serum",
-            "note": "Ethyl Ascorbic Acid for stable brightening."
+            "note": "Ethyl Ascorbic Acid for stable brightening.",
+            "image_url": "/static/products/minimalist_10_vitamin_c_serum.jpg",
+            "buy_url": "https://beminimalist.co/products/vitamin-c-serum-10",
         },
     ],
     "SPF 50 Sunscreen": [
@@ -274,19 +298,25 @@ PRODUCT_CATALOG = {
             "product": "Anthelios UVMune 400 SPF 50+",
             "brand": "La Roche-Posay",
             "category": "Sunscreen",
-            "note": "Superior broad-spectrum protection, lightweight finish."
+            "note": "Superior broad-spectrum protection, lightweight finish.",
+            "image_url": "/static/products/la_roche_posay_anthelios_uvmune_400.jpg",
+            "buy_url": "https://www.laroche-posay.us/our-products/sun/face-sunscreen/anthelios-melt-in-milk-sunscreen-spf-60-antheliosfaceandbodysunscreen.html",
         },
         {
             "product": "Relief Sun Rice + Probiotics SPF 50+",
             "brand": "Beauty of Joseon",
             "category": "Sunscreen",
-            "note": "K-beauty cult-favorite. Moisturizing with no white cast."
+            "note": "K-beauty cult-favorite. Moisturizing with no white cast.",
+            "image_url": "/static/products/beauty_of_joseon_relief_sun_spf_50.jpg",
+            "buy_url": "https://beautyofjoseon.com/products/relief-sun-rice-probiotics-set",
         },
         {
             "product": "UV Aqua Rich Watery Essence SPF 50+",
             "brand": "Bioré",
             "category": "Sunscreen",
-            "note": "Ultra-light watery texture, ideal under makeup."
+            "note": "Ultra-light watery texture, ideal under makeup.",
+            "image_url": "/static/products/biore_uv_aqua_rich_watery_essence.jpg",
+            "buy_url": "https://www.amazon.com/s?k=Biore+UV+Aqua+Rich+Watery+Essence+SPF50",
         },
     ],
     "Centella Asiatica": [
@@ -294,13 +324,17 @@ PRODUCT_CATALOG = {
             "product": "Madagascar Centella Ampoule",
             "brand": "SKIN1004",
             "category": "Ampoule",
-            "note": "Pure centella extract for calming and recovery."
+            "note": "Pure centella extract for calming and recovery.",
+            "image_url": "/static/products/the_ordinary_hyaluronic_acid_2_b5.jpg",
+            "buy_url": "https://www.amazon.com/s?k=SKIN1004+Madagascar+Centella+Ampoule",
         },
         {
             "product": "Centella Unscented Serum",
             "brand": "PURITO",
             "category": "Serum",
-            "note": "Fragrance-free calming serum for sensitive skin."
+            "note": "Fragrance-free calming serum for sensitive skin.",
+            "image_url": "/static/products/the_ordinary_niacinamide_10_zinc_1.jpg",
+            "buy_url": "https://www.amazon.com/s?k=PURITO+Centella+Unscented+Serum",
         },
     ],
     "Aloe Vera": [
@@ -308,7 +342,9 @@ PRODUCT_CATALOG = {
             "product": "92% Aloe Vera Soothing Gel",
             "brand": "Nature Republic",
             "category": "Gel",
-            "note": "Multi-purpose soothing & cooling gel."
+            "note": "Multi-purpose soothing & cooling gel.",
+            "image_url": "/static/products/cosrx_hydra_power_essence.jpg",
+            "buy_url": "https://www.amazon.com/s?k=Nature+Republic+92+Aloe+Vera+Gel",
         },
     ],
     "Lactic Acid": [
@@ -316,7 +352,9 @@ PRODUCT_CATALOG = {
             "product": "Lactic Acid 10% + HA",
             "brand": "The Ordinary",
             "category": "Exfoliant",
-            "note": "Gentle AHA for smoother, more radiant skin texture."
+            "note": "Gentle AHA for smoother, more radiant skin texture.",
+            "image_url": "/static/products/the_ordinary_hyaluronic_acid_2_b5.jpg",
+            "buy_url": "https://theordinary.com/en-us/lactic-acid-10-ha-2-exfoliator-100427.html",
         },
     ],
     "BHA Exfoliant": [
@@ -324,7 +362,9 @@ PRODUCT_CATALOG = {
             "product": "BHA Blackhead Power Liquid",
             "brand": "COSRX",
             "category": "Exfoliant",
-            "note": "Betaine salicylate formula for gentle pore clearing."
+            "note": "Betaine salicylate formula for gentle pore clearing.",
+            "image_url": "/static/products/paulas_choice_bha_liquid_exfoliant_2.jpg",
+            "buy_url": "https://www.cosrx.com/products/bha-blackhead-power-liquid",
         },
     ],
     "Niacinamide + Vitamin C": [
@@ -332,35 +372,107 @@ PRODUCT_CATALOG = {
             "product": "Niacinamide 10% + Zinc 1%",
             "brand": "The Ordinary",
             "category": "Serum",
-            "note": "Use in the evening; pair with Vitamin C in the morning."
+            "note": "Use in the evening; pair with Vitamin C in the morning.",
+            "image_url": "/static/products/the_ordinary_niacinamide_10_zinc_1.jpg",
+            "buy_url": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
         },
     ],
 }
 
 
-def get_product_recommendations(recommended_ingredients):
+def lookup_catalog_entries(ingredient_raw):
     """
-    Given the list of recommended ingredient dicts,
-    returns a list of product recommendations with brand info.
+    Resilient lookup that matches raw ingredient strings (e.g., 'Niacinamide (5%)',
+    'Broad-Spectrum SPF 50', 'Hyaluronic Acid - Hydrating') to catalog entries.
+    """
+    if not ingredient_raw:
+        return []
+    
+    # 1. Direct exact match
+    if ingredient_raw in PRODUCT_CATALOG:
+        return PRODUCT_CATALOG[ingredient_raw]
+
+    norm = str(ingredient_raw).lower()
+
+    # 2. Key-phrase normalized matching
+    if "niacinamide" in norm and "vitamin c" in norm:
+        return PRODUCT_CATALOG.get("Niacinamide + Vitamin C", [])
+    elif "niacinamide" in norm or "vitamin b3" in norm:
+        return PRODUCT_CATALOG.get("Niacinamide", [])
+    elif "salicylic" in norm or "bha" in norm:
+        return PRODUCT_CATALOG.get("Salicylic Acid", [])
+    elif "hyaluronic" in norm or "hydra" in norm:
+        return PRODUCT_CATALOG.get("Hyaluronic Acid", [])
+    elif "ceramide" in norm:
+        return PRODUCT_CATALOG.get("Ceramides", [])
+    elif "sunscreen" in norm or "spf" in norm or "uv" in norm:
+        return PRODUCT_CATALOG.get("SPF 50 Sunscreen", [])
+    elif "vitamin c" in norm or "ascorbic" in norm:
+        return PRODUCT_CATALOG.get("Vitamin C", [])
+    elif "centella" in norm or "cica" in norm:
+        return PRODUCT_CATALOG.get("Centella Asiatica", [])
+    elif "aloe" in norm:
+        return PRODUCT_CATALOG.get("Aloe Vera", [])
+    elif "lactic" in norm or "aha" in norm:
+        return PRODUCT_CATALOG.get("Lactic Acid", [])
+
+    # 3. Partial keyword matching against catalog keys
+    for cat_key, entries in PRODUCT_CATALOG.items():
+        if cat_key.lower() in norm or norm in cat_key.lower():
+            return entries
+
+    return []
+
+
+def get_product_recommendations(recommended_ingredients=None):
+    """
+    Given the list of recommended ingredient dicts or strings,
+    returns a list of product recommendations arranged and grouped by active ingredient.
     """
     products = []
     seen_products = set()
 
-    for item in recommended_ingredients:
-        ingredient_name = item.get("ingredient", "")
-        catalog_entries = PRODUCT_CATALOG.get(ingredient_name, [])
+    if recommended_ingredients:
+        for item in recommended_ingredients:
+            ingredient_name = item.get("ingredient", "") if isinstance(item, dict) else str(item)
+            catalog_entries = lookup_catalog_entries(ingredient_name)
 
-        for entry in catalog_entries:
-            product_key = f"{entry['brand']}_{entry['product']}"
-            if product_key not in seen_products:
-                seen_products.add(product_key)
-                products.append({
-                    "ingredient": ingredient_name,
-                    "product": entry["product"],
-                    "brand": entry["brand"],
-                    "category": entry["category"],
-                    "note": entry["note"],
-                })
+            for entry in catalog_entries:
+                product_key = f"{entry['brand']}_{entry['product']}"
+                if product_key not in seen_products:
+                    seen_products.add(product_key)
+                    category = entry.get("category", "Serum")
+                    products.append({
+                        "ingredient": ingredient_name,
+                        "product": entry["product"],
+                        "brand": entry["brand"],
+                        "category": category,
+                        "note": entry["note"],
+                        "image_url": entry.get("image_url", ""),
+                        "buy_url": entry.get("buy_url", ""),
+                    })
+
+    # Guaranteed baseline fallback if ingredients list was empty or produced no matches
+    if not products:
+        baseline_ingredients = ["Niacinamide", "Vitamin C", "Hyaluronic Acid", "Ceramides", "SPF 50 Sunscreen"]
+        for ing in baseline_ingredients:
+            for entry in PRODUCT_CATALOG.get(ing, []):
+                product_key = f"{entry['brand']}_{entry['product']}"
+                if product_key not in seen_products:
+                    seen_products.add(product_key)
+                    category = entry.get("category", "Serum")
+                    products.append({
+                        "ingredient": ing,
+                        "product": entry["product"],
+                        "brand": entry["brand"],
+                        "category": category,
+                        "note": entry["note"],
+                        "image_url": entry.get("image_url", ""),
+                        "buy_url": entry.get("buy_url", ""),
+                    })
+
+    # Sort strictly by ingredient so all products with the same ingredient appear side-by-side
+    products.sort(key=lambda p: (p.get("ingredient", ""), p.get("brand", ""), p.get("product", "")))
 
     return products
 
