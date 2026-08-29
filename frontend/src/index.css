@@ -4560,3 +4560,161 @@ padding:50px 25px;
         page-break-inside: avoid;
     }
 }
+
+/* =====================================================
+   FEEDBACK & COMMUNITY REVIEWS - LUXURY THEME
+===================================================== */
+.feedback-section {
+    padding-top: 130px !important;
+    padding-bottom: 90px !important;
+    min-height: 90vh;
+}
+
+.feedback-header-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 2.75rem;
+    font-weight: 700;
+    color: var(--green-dark);
+    letter-spacing: -0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.feedback-card-container {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(233, 226, 215, 0.85);
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(112, 123, 87, 0.07);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feedback-stat-badge {
+    background: #fff;
+    border: 1px solid rgba(233, 226, 215, 0.8);
+    border-radius: 16px;
+    padding: 14px 20px;
+    box-shadow: 0 4px 16px rgba(112, 123, 87, 0.04);
+}
+
+/* Interactive Star Rating Selector */
+.star-rating-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.star-rating-btn {
+    font-size: 1.85rem;
+    color: #e5e0d3;
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.15s ease, text-shadow 0.15s ease;
+}
+
+.star-rating-btn:hover {
+    transform: scale(1.22);
+}
+
+.star-rating-btn.active {
+    color: #d97706;
+    text-shadow: 0 0 10px rgba(217, 119, 6, 0.25);
+}
+
+/* Custom Feedback Form Input & Textarea */
+.feedback-input-box {
+    width: 100%;
+    background: #faf8f5 !important;
+    border: 1.5px solid rgba(233, 226, 215, 0.9) !important;
+    border-radius: 14px !important;
+    padding: 12px 16px !important;
+    font-size: 0.92rem !important;
+    color: var(--text) !important;
+    transition: all 0.2s ease !important;
+    resize: vertical;
+    outline: none !important;
+}
+
+.feedback-input-box:focus {
+    background: #ffffff !important;
+    border-color: var(--green) !important;
+    box-shadow: 0 0 0 3px rgba(112, 123, 87, 0.15) !important;
+}
+
+/* Category Filter & Select Chips */
+.feedback-chip {
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid rgba(233, 226, 215, 0.9);
+    background: #faf8f5;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.feedback-chip:hover {
+    background: #f0ece3;
+    color: var(--green-dark);
+}
+
+.feedback-chip.active {
+    background: var(--green-dark);
+    color: #fff;
+    border-color: var(--green-dark);
+    box-shadow: 0 4px 12px rgba(89, 101, 71, 0.25);
+}
+
+/* Slim Custom Scrollbar for Reviews Box */
+.review-custom-scroll {
+    max-height: 560px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.review-custom-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.review-custom-scroll::-webkit-scrollbar-track {
+    background: rgba(233, 226, 215, 0.3);
+    border-radius: 10px;
+}
+
+.review-custom-scroll::-webkit-scrollbar-thumb {
+    background: rgba(112, 123, 87, 0.35);
+    border-radius: 10px;
+}
+
+.review-custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--green);
+}
+
+/* Review Card Styling */
+.user-review-item {
+    background: #ffffff;
+    border: 1px solid rgba(233, 226, 215, 0.85);
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.user-review-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(112, 123, 87, 0.08);
+    border-color: rgba(112, 123, 87, 0.35);
+}
+
+.review-avatar-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(112, 123, 87, 0.15), rgba(89, 101, 71, 0.25));
+    color: var(--green-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: 1.5px solid rgba(112, 123, 87, 0.2);
+}
