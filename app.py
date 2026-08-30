@@ -128,10 +128,15 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
+        is_json = request.is_json
+        data = request.get_json() if is_json else request.form
+
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
 
         if not email or not password:
+            if is_json:
+                return jsonify({"success": False, "message": "Please enter both email and password."}), 400
             flash("Please enter both email and password.", "danger")
             return render_template("login.html")
 
@@ -144,11 +149,26 @@ def login():
             session["user_role"] = user["role"]
 
             update_last_login(user["id"])
-            flash(f"Welcome back, {user['full_name']}!", "success")
 
+            if is_json:
+                return jsonify({
+                    "success": True,
+                    "message": f"Welcome back, {user['full_name']}!",
+                    "user": {
+                        "id": user["id"],
+                        "full_name": user["full_name"],
+                        "email": user["email"],
+                        "role": user.get("role", "user"),
+                        "skin_type": user.get("skin_type", "Normal")
+                    }
+                })
+
+            flash(f"Welcome back, {user['full_name']}!", "success")
             next_page = request.args.get("next")
             return redirect(next_page or url_for("dashboard"))
         else:
+            if is_json:
+                return jsonify({"success": False, "message": "Invalid email or password. Please try again."}), 401
             flash("Invalid email or password. Please try again.", "danger")
 
     return render_template("login.html")
@@ -157,25 +177,36 @@ def login():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        full_name = request.form.get("full_name", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
+        is_json = request.is_json
+        data = request.get_json() if is_json else request.form
+
+        full_name = (data.get("full_name") or "").strip()
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
+        confirm_password = data.get("confirm_password") or password
 
         if not full_name or not email or not password:
+            if is_json:
+                return jsonify({"success": False, "message": "All fields are required."}), 400
             flash("All fields are required.", "danger")
             return render_template("register.html")
 
         if password != confirm_password:
+            if is_json:
+                return jsonify({"success": False, "message": "Passwords do not match."}), 400
             flash("Passwords do not match.", "danger")
             return render_template("register.html")
 
         if len(password) < 6:
+            if is_json:
+                return jsonify({"success": False, "message": "Password must be at least 6 characters long."}), 400
             flash("Password must be at least 6 characters long.", "danger")
             return render_template("register.html")
 
         existing_user = get_user_by_email(email)
         if existing_user:
+            if is_json:
+                return jsonify({"success": False, "message": "An account with this email already exists."}), 409
             flash("An account with this email already exists. Please login.", "warning")
             return redirect(url_for("login"))
 
@@ -187,19 +218,39 @@ def register():
             session["user_email"] = email
             session["user_role"] = "user"
 
+            user_obj = {
+                "id": user_id,
+                "full_name": full_name,
+                "email": email,
+                "role": "user",
+                "skin_type": "Normal"
+            }
+
+            if is_json:
+                return jsonify({
+                    "success": True,
+                    "message": "Account created successfully! Welcome to Skiné.",
+                    "user": user_obj
+                })
+
             flash("Account created successfully! Welcome to Skiné.", "success")
             return redirect(url_for("dashboard"))
         except Exception as e:
+            if is_json:
+                return jsonify({"success": False, "message": f"Registration error: {str(e)}"}), 500
             flash(f"Registration error: {str(e)}", "danger")
 
     return render_template("register.html")
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
+    if request.is_json:
+        return jsonify({"success": True, "message": "You have been signed out."})
     flash("You have been signed out.", "info")
     return redirect(url_for("login"))
+
 
 
 @app.route("/api/me")

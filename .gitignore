@@ -17,6 +17,7 @@ skin_analysis.db
 # Uploads (Keep folder structure, exclude temporary images)
 static/uploads/scans/*
 static/uploads/crops/*
+static/uploads/test_scratch/*
 !static/uploads/.gitkeep
 !static/uploads/scans/.gitkeep
 !static/uploads/crops/.gitkeep

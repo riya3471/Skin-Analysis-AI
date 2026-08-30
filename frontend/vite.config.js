@@ -15,6 +15,18 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
+      '/login': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/register': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/logout': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
       '/static': {
         target: 'http://localhost:5000',
         changeOrigin: true,
