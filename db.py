@@ -801,3 +801,79 @@ def get_admin_dashboard_data():
         activities.append(d)
 
     return stats, activities
+
+
+# ====================================================================
+# CHAT QUOTA & RATE LIMITING HELPERS
+# ====================================================================
+
+_chat_table_initialized = False
+
+def ensure_chat_tables():
+    """Ensure chat quota logging table exists in PostgreSQL / SQLite."""
+    global _chat_table_initialized
+    if _chat_table_initialized:
+        return
+    try:
+        if is_postgres():
+            execute_query("""
+            CREATE TABLE IF NOT EXISTS chat_usage_logs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_chat_usage_user_time ON chat_usage_logs(user_id, created_at);
+            """)
+        else:
+            execute_query("""
+            CREATE TABLE IF NOT EXISTS chat_usage_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_chat_usage_user_time ON chat_usage_logs(user_id, created_at);
+            """)
+        _chat_table_initialized = True
+    except Exception as e:
+        print(f"Chat table ensure note: {e}")
+
+
+def get_user_chat_quota(user_id, limit=350):
+    """
+    Returns (used_count: int, remaining: int, is_allowed: bool)
+    within the rolling 24-hour window.
+    """
+    ensure_chat_tables()
+    try:
+        if is_postgres():
+            row = execute_query(
+                "SELECT COUNT(*) AS cnt FROM chat_usage_logs WHERE user_id = ? AND created_at >= NOW() - INTERVAL '24 hours'",
+                (user_id,),
+                fetch_one=True
+            )
+        else:
+            row = execute_query(
+                "SELECT COUNT(*) AS cnt FROM chat_usage_logs WHERE user_id = ? AND created_at >= datetime('now', '-24 hours')",
+                (user_id,),
+                fetch_one=True
+            )
+        count = row["cnt"] if row else 0
+        remaining = max(0, limit - count)
+        allowed = count < limit
+        return count, remaining, allowed
+    except Exception as e:
+        print(f"Error checking chat quota: {e}")
+        return 0, limit, True
+
+
+def log_user_chat_message(user_id):
+    """Record a chat message for the user's 24-hour rate-limiting quota."""
+    ensure_chat_tables()
+    try:
+        execute_insert(
+            "INSERT INTO chat_usage_logs (user_id) VALUES (?)",
+            (user_id,)
+        )
+    except Exception as e:
+        print(f"Error logging chat message: {e}")
+

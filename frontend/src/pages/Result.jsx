@@ -342,6 +342,96 @@ export default function Result() {
           </div>
         </div>
 
+        {/* CLINICAL AI CONSULTATION CALLOUT SECTION */}
+        <div className="ask-ai-banner p-4 mb-5 shadow-sm" style={{ borderRadius: '20px', background: 'linear-gradient(135deg, rgba(64, 74, 50, 0.06) 0%, rgba(112, 123, 87, 0.12) 100%)', border: '1px solid rgba(64, 74, 50, 0.18)' }}>
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+            <div className="d-flex align-items-center gap-3">
+              <div className="p-3 rounded-circle" style={{ background: 'var(--green-dark)', color: '#fff', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fa-solid fa-stethoscope fa-lg"></i>
+              </div>
+              <div>
+                <h5 className="mb-1 fw-bold" style={{ color: 'var(--green-dark)' }}>
+                  Clinical Formulation Advisory
+                </h5>
+                <p className="small text-muted mb-0">
+                  Consult Skiné Clinical AI for individualized active ingredient interactions, barrier protocols, and topical formulation safety.
+                </p>
+              </div>
+            </div>
+            <button
+              className="hero-btn d-inline-flex align-items-center justify-content-center px-4 py-2"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open-skine-chat', {
+                    detail: { prompt: `Please provide a clinical summary of my ${result.skin_type || 'skin'} biomarker assessment and primary treatment priorities.` },
+                  })
+                );
+              }}
+              style={{ fontSize: '0.9rem' }}
+            >
+              <i className="fa-solid fa-user-doctor me-2"></i> Consult Clinical Assistant
+            </button>
+          </div>
+
+          <div className="d-flex flex-wrap gap-2 pt-2 border-top">
+            <span className="small text-muted fw-bold d-flex align-items-center me-1">
+              <i className="fa-solid fa-clipboard-question text-secondary me-1"></i> Clinical Inquiries:
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-pill text-dark px-3 py-1 small"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open-skine-chat', {
+                    detail: { prompt: `Evaluate the clinical basis of my ${result.oiliness_level || 'Moderate'} sebum score and suggest non-comedogenic balancing steps.` },
+                  })
+                );
+              }}
+            >
+              <i className="fa-solid fa-droplet text-muted me-1"></i> Sebum Balancing Protocol
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-pill text-dark px-3 py-1 small"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open-skine-chat', {
+                    detail: { prompt: `Are active retinoids and Vitamin C safe to incorporate alongside my prescribed AM/PM routine?` },
+                  })
+                );
+              }}
+            >
+              <i className="fa-solid fa-flask-vial text-muted me-1"></i> Retinoid & Active Compatibility
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-pill text-dark px-3 py-1 small"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open-skine-chat', {
+                    detail: { prompt: `Recommend evidence-based clinical drugstore formulations matching my ${result.skin_type || 'Combination'} skin profile.` },
+                  })
+                );
+              }}
+            >
+              <i className="fa-solid fa-prescription-bottle-medical text-muted me-1"></i> Evidence-Based Alternatives
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-pill text-dark px-3 py-1 small"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open-skine-chat', {
+                    detail: { prompt: `What UV filter formulation (mineral zinc oxide vs. chemical filters) offers optimal protection for my ${result.skin_type || 'Combination'} skin?` },
+                  })
+                );
+              }}
+            >
+              <i className="fa-solid fa-sun text-muted me-1"></i> Photoprotection Specifications
+            </button>
+          </div>
+        </div>
+
         {/* INTERACTIVE ROUTINES & INGREDIENTS SECTION */}
         <div className="row g-4 mb-5">
           {/* Morning Routine */}

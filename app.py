@@ -1,6 +1,9 @@
 import os
 import uuid
 import base64
+import json
+import urllib.request
+import urllib.error
 from functools import wraps
 from datetime import datetime
 from dotenv import load_dotenv
@@ -42,6 +45,8 @@ from db import (
     add_feedback,
     get_all_feedback,
     get_admin_dashboard_data,
+    get_user_chat_quota,
+    log_user_chat_message,
 )
 
 app = Flask(__name__)
@@ -521,6 +526,247 @@ def analyze():
     except Exception as e:
         print(f"Error in /analyze: {e}")
         return jsonify({"success": False, "message": f"Server error during analysis: {str(e)}"}), 500
+
+
+# ====================================================================
+# AI VIRTUAL DERMATOLOGIST CHATBOT API (AUTHENTICATED & RATE-LIMITED)
+# ====================================================================
+
+@app.route("/api/chat/quota", methods=["GET"])
+def api_chat_quota():
+    """Returns current user's 24-hour chat usage and quota status."""
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({
+            "success": True,
+            "is_authenticated": False,
+            "used": 0,
+            "limit": 350,
+            "remaining": 350,
+            "require_login": True
+        })
+    used, remaining, allowed = get_user_chat_quota(user_id, limit=350)
+    return jsonify({
+        "success": True,
+        "is_authenticated": True,
+        "used": used,
+        "limit": 350,
+        "remaining": remaining,
+        "allowed": allowed
+    })
+
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    """
+    Real-time conversational skincare assistant powered by Gemini.
+    Requires user authentication and enforces a 350 messages per 24-hour limit.
+    """
+    try:
+        # 1. Enforce Authentication Requirement
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({
+                "success": False,
+                "message": "Please sign in to access Skiné AI and receive personalized dermatological consultations.",
+                "require_login": True
+            }), 401
+
+        # 2. Enforce 350 Messages / 24-Hour Rate Limiting Quota
+        used_count, remaining, is_allowed = get_user_chat_quota(user_id, limit=350)
+        if not is_allowed:
+            return jsonify({
+                "success": False,
+                "message": "Daily AI limit reached (350 messages / 24 hrs). Your quota will reset automatically.",
+                "quota_exceeded": True,
+                "usage": {
+                    "used": used_count,
+                    "limit": 350,
+                    "remaining": 0
+                }
+            }), 429
+
+        data = request.get_json() or {}
+        user_message = (data.get("message") or "").strip()
+        history = data.get("history") or []
+        client_context = data.get("context") or {}
+
+        if not user_message:
+            return jsonify({"success": False, "message": "Message cannot be empty."}), 400
+
+        # Retrieve user scan context
+        latest_scan = get_latest_user_scan(user_id)
+        if not latest_scan:
+            latest_scan = session.get("analysis_result") or client_context
+
+        # Build context strings
+        skin_type = latest_scan.get("skin_type", "Combination")
+        overall_score = latest_scan.get("overall_score", 90.0)
+        overall_condition = latest_scan.get("overall_condition", "Balanced")
+        oiliness_level = latest_scan.get("oiliness_level", "Moderate")
+        dryness_level = latest_scan.get("dryness_level", "Low")
+        redness_level = latest_scan.get("redness_level", "Low")
+        texture_level = latest_scan.get("texture_level", "Smooth")
+        pigmentation_level = latest_scan.get("pigmentation_level", "Low")
+
+        morning_routine = latest_scan.get("morning_routine") or ["Gentle Cleanser", "Niacinamide Serum", "SPF 50+ Sunscreen"]
+        night_routine = latest_scan.get("night_routine") or ["Double Cleanse", "Ceramide Barrier Cream"]
+        recommended_ingredients = latest_scan.get("recommended_ingredients") or []
+        things_to_avoid = latest_scan.get("things_to_avoid") or ["Harsh scrubs", "High-pH bar soaps"]
+
+        ingredients_summary = ", ".join([
+            f"{i.get('ingredient', i) if isinstance(i, dict) else i}"
+            for i in recommended_ingredients[:5]
+        ]) or "Hyaluronic Acid, Ceramides, Niacinamide, SPF 50"
+
+        avoid_summary = ", ".join([
+            f"{a.get('item', a) if isinstance(a, dict) else a}"
+            for a in things_to_avoid[:4]
+        ]) or "Harsh physical scrubs, drying sulfates"
+
+        system_instruction = (
+            "You are Skiné AI, an intelligent and helpful artificial intelligence assistant with specialized expertise in cosmetic dermatology, active ingredient formulations, and personalized skincare routines.\n\n"
+            "CORE BEHAVIORAL GUIDELINES:\n"
+            "1. PROMPT ALIGNMENT: Directly address the user's exact inquiry. If the user asks a general question (e.g., about web development like CSS, science, or general facts), answer their question accurately and concisely, then politely mention your primary focus is personalized skincare guidance.\n"
+            "2. SKINCARE EXPERTISE: When answering skincare questions, provide evidence-based, scientifically accurate guidance tailored to their scan biomarkers. Do NOT repeat generic introductory greetings on every turn—answer their question immediately.\n"
+            "3. COMPLETE & STRUCTURED: Complete every thought and explanation thoroughly without cutting off. Use bold markdown headings and bullet points for clean readability.\n"
+            "4. EMOJI-FREE & PROFESSIONAL: Do NOT use emojis. Maintain an articulate, professional, and clear tone.\n"
+            "5. COMPLIANCE: You are an AI assistant and not a licensed medical doctor. Advice is for cosmetic informational guidance.\n\n"
+            "USER FACIAL BIOMARKER PROFILE (For Skincare Context):\n"
+            f"- Skin Type: {skin_type}\n"
+            f"- Health Index: {overall_score}%\n"
+            f"- Primary Condition: {overall_condition}\n"
+            f"- Sebum / Oiliness Level: {oiliness_level}\n"
+            f"- Hydration Level: {dryness_level}\n"
+            f"- Erythema / Redness: {redness_level}\n"
+            f"- Surface Texture: {texture_level}\n"
+            f"- Current AM Routine: {', '.join(morning_routine)}\n"
+            f"- Current PM Routine: {', '.join(night_routine)}\n"
+            f"- Beneficial Actives: {ingredients_summary}\n"
+            f"- Caution Ingredients: {avoid_summary}\n"
+        )
+
+        api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+        reply_text = None
+        used_model = "local-fallback"
+
+        if api_key:
+            models_to_try = [
+                "models/gemini-3.7-flash",
+                "models/gemini-3.6-flash",
+                "models/gemini-3.5-flash",
+                "models/gemini-3.5-flash-lite",
+            ]
+
+            contents = []
+            # Append previous chat turns for multi-turn conversational context
+            for turn in history[-6:]:
+                role = "user" if turn.get("role") == "user" else "model"
+                text = (turn.get("content") or turn.get("text") or "").strip()
+                if text:
+                    contents.append({"role": role, "parts": [{"text": text}]})
+
+            # Append user's current inquiry
+            contents.append({"role": "user", "parts": [{"text": user_message}]})
+
+            payload = {
+                "system_instruction": {
+                    "parts": [{"text": system_instruction}]
+                },
+                "contents": contents,
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "maxOutputTokens": 2048,
+                }
+            }
+
+            json_bytes = json.dumps(payload).encode("utf-8")
+
+            for model_name in models_to_try:
+                try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
+                    req = urllib.request.Request(
+                        url,
+                        data=json_bytes,
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-goog-api-key": api_key
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=18) as response:
+                        resp_body = json.loads(response.read().decode("utf-8"))
+                        reply_text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        used_model = model_name
+                        break
+                except Exception as ex:
+                    print(f"Chat Gemini model {model_name} note: {ex}")
+                    continue
+
+        if not reply_text:
+            msg_lower = user_message.lower()
+            if "sebum" in msg_lower or "oil" in msg_lower:
+                reply_text = (
+                    f"### Impact of Sebum Production on Epidermal Barrier Function\n\n"
+                    f"Sebum is an essential lipid mixture produced by sebaceous glands that plays a crucial role in maintaining your skin's acid mantle and preventing transepidermal water loss (TEWL).\n\n"
+                    f"• **Current Assessment**: Your scan measured **{oiliness_level} sebum output** with a **{skin_type} skin classification**.\n"
+                    f"• **Barrier Balance**: While adequate sebum prevents dryness, excessive sebum oxidation can compromise the skin microbiome and lead to micro-comedones.\n"
+                    f"• **Recommended Action**: Use a gentle, low-pH cleanser followed by **Niacinamide (2-5%)** to regulate sebum output without stripping natural barrier lipids.\n"
+                    f"• **Key Tip**: Never skip moisturizer; dehydrated skin often compensates by overproducing sebum."
+                )
+            elif "retinol" in msg_lower or "retinoid" in msg_lower:
+                reply_text = (
+                    f"### Retinoid Safety and Layering Protocol\n\n"
+                    f"Retinoids accelerate cellular turnover and stimulate collagen synthesis, making them a gold-standard active for texture refinement and barrier health when introduced gradually.\n\n"
+                    f"• **Titration Schedule**: Start 2 nights per week for the first 2 weeks. Gradually increase to alternate nights as tolerance develops.\n"
+                    f"• **Buffering Technique**: For your **{skin_type}** skin, apply moisturizer first (or sandwich the retinoid between light moisturizer layers) to minimize erythema.\n"
+                    f"• **Contraindications**: Do NOT layer Retinol directly with AHAs/BHAs (Salicylic or Glycolic Acid) or pure L-Ascorbic Acid in the same application window.\n"
+                    f"• **Essential Step**: Daily broad-spectrum SPF 50 sunscreen is mandatory every morning."
+                )
+            elif "sunscreen" in msg_lower or "spf" in msg_lower or "photoprotection" in msg_lower:
+                reply_text = (
+                    f"### Optimal Photoprotection Protocol for {skin_type} Skin\n\n"
+                    f"Broad-spectrum photoprotection is the most critical pillar for preventing photo-aging, hyperpigmentation, and barrier degradation.\n\n"
+                    f"• **Formula Recommendation**: For **{skin_type} skin with {oiliness_level} oiliness**, choose a lightweight fluid or water-gel sunscreen with PA++++ rating.\n"
+                    f"• **UV Filters**: Hybrid or modern chemical filters (like Tinosorb S/M) offer zero white cast, while mineral Zinc Oxide provides anti-inflammatory benefits for sensitive areas.\n"
+                    f"• **Application Dosage**: Apply two finger lengths (approx. 1/4 teaspoon) to the face and neck every morning as the final routine step."
+                )
+            elif "barrier" in msg_lower or "repair" in msg_lower:
+                reply_text = (
+                    f"### Epidermal Barrier Restoration Protocol\n\n"
+                    f"A healthy stratum corneum relies on an optimal 3:1:1 physiological ratio of ceramides, cholesterol, and free fatty acids.\n\n"
+                    f"• **Immediate Action**: Pause all strong exfoliating acids (AHAs/BHAs) and high-strength retinoids for 7-14 days.\n"
+                    f"• **Key Hydrators**: Favor **Centella Asiatica (Cica)**, **Panthenol (Vitamin B5)**, and **Ceramide NP** to restore intercellular cement.\n"
+                    f"• **Cleansing Routine**: Wash only with lukewarm water or a sulfate-free non-foaming cream cleanser."
+                )
+            else:
+                reply_text = (
+                    f"### Personalized Skincare Recommendations for {skin_type} Skin\n\n"
+                    f"Based on your facial biomarker scan (Clinical Health Score: **{overall_score}%**, Condition: **{overall_condition}**):\n\n"
+                    f"• **Targeted Active Regimen**: Prioritize **{ingredients_summary}** to promote optimal lipid balance and cellular renewal.\n"
+                    f"• **AM Protocol**: Gentle Cleanser -> Hydrating Serum -> Lightweight Barrier Cream -> Broad-Spectrum SPF 50.\n"
+                    f"• **PM Protocol**: Double Cleanse -> Active Treatment (on dry skin) -> Ceramide Nourishing Cream.\n"
+                    f"• **Precautionary Notes**: Avoid {avoid_summary} to maintain stratum corneum equilibrium."
+                )
+
+        # 3. Log the successful message for 24-hour rate limit tracking
+        log_user_chat_message(user_id)
+
+        return jsonify({
+            "success": True,
+            "reply": reply_text,
+            "model": used_model,
+            "usage": {
+                "used": used_count + 1,
+                "limit": 350,
+                "remaining": max(0, remaining - 1)
+            }
+        })
+
+    except Exception as e:
+        print(f"Error in /api/chat: {e}")
+        return jsonify({"success": False, "message": f"Chat service error: {str(e)}"}), 500
+
+
 
 
 # ====================================================================

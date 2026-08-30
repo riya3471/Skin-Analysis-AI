@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
+import ChatWidget from './components/ChatWidget';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Home from './pages/Home';
@@ -26,6 +27,7 @@ export default function App() {
         <div className="app-layout d-flex flex-column min-vh-100">
           <Navbar />
           <Toast />
+          <ChatWidget />
           <main style={{ marginTop: '110px', minHeight: '70vh' }}>
             <Routes>
               <Route path="/" element={<Home />} />
