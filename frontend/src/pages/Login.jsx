@@ -94,16 +94,6 @@ export default function Login() {
                       Remember me
                     </label>
                   </div>
-                  <span
-                    className="small text-muted"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => {
-                      setEmail('user@skinai.com');
-                      setPassword('password123');
-                    }}
-                  >
-                    <i className="fa-solid fa-key me-1 text-warning"></i> Demo: user@skinai.com / password123
-                  </span>
                 </div>
 
                 <button type="submit" className="hero-btn w-100 justify-content-center">
