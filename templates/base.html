@@ -172,11 +172,149 @@
     </div>
 </footer>
 
+<!-- ================= SKINÉ AI FLOATING CHATBOT WIDGET ================= -->
+<div class="skine-chat-container">
+    <!-- Floating Launcher Button -->
+    <button id="skineChatLauncher" class="skine-chat-launcher shadow-md" aria-label="Open Skiné AI Skincare Assistant" title="Open Skiné AI Skincare Assistant">
+        <div class="skine-launcher-pill">
+            <div class="launcher-sparkle-wrap">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="launcher-text-wrap d-none d-sm-flex">
+                <span class="launcher-title">Skiné AI</span>
+                <span class="launcher-sub">
+                    {% if is_authenticated and current_user %}
+                        Skincare Assistant for {{ current_user.full_name.split(' ')[0] }}
+                    {% else %}
+                        AI Skincare Assistant
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        <span class="pulse-ring"></span>
+    </button>
+
+    <!-- Expandable Chat Panel Card -->
+    <div id="skineChatCard" class="skine-chat-card shadow-lg d-none"
+         data-auth="{{ 'true' if is_authenticated else 'false' }}"
+         data-user-name="{{ current_user.full_name.split(' ')[0] if (is_authenticated and current_user) else 'Guest' }}"
+         data-skin-type="{{ latest_scan.skin_type if latest_scan else (current_user.skin_type if current_user else 'Combination') }}"
+         data-score="{{ latest_scan.overall_score if latest_scan else '90' }}">
+        
+        <!-- Header -->
+        <div class="skine-chat-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="chat-avatar-circle">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold chat-title">Skiné AI Assistant</h6>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span class="status-dot"></span>
+                            <span class="chat-subtitle">AI-Powered Skincare Assistant</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    {% if is_authenticated %}
+                    <button id="skineChatReset" class="chat-header-btn" title="Reset conversation">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                    {% endif %}
+                    <button id="skineChatMinimize" class="chat-header-btn" title="Minimize window">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if not is_authenticated %}
+        <!-- Lock Gate For Guest Users -->
+        <div class="skine-auth-lock-card">
+            <div class="auth-lock-icon-wrap mb-3">
+                <i class="fa-solid fa-shield-halved fa-2xl"></i>
+            </div>
+            <h5 class="fw-bold mb-2" style="color: var(--green-dark);">Sign In Required</h5>
+            <p class="text-muted mb-4 px-3" style="line-height: 1.6; font-size: 0.88rem;">
+                Skiné AI computes formulation and ingredient suggestions based on your personal skin scan profile. Please sign in to begin your consultation.
+            </p>
+            <div class="d-flex flex-column gap-2 w-100 px-4">
+                <a href="{{ url_for('login') }}" class="btn btn-primary w-100 py-2" style="border-radius: 25px;">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i> Sign In to Account
+                </a>
+                <a href="{{ url_for('register') }}" class="btn btn-outline-secondary w-100 py-2" style="border-radius: 25px;">
+                    <i class="fa-solid fa-user-plus me-2"></i> Register New Profile
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <!-- Patient Diagnostic Banner -->
+        <div class="chat-patient-banner">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-id-card-clip text-muted"></i>
+                    <span class="fw-bold text-dark" style="font-size: 0.84rem;">
+                        {{ current_user.full_name if current_user else 'Member' }}
+                    </span>
+                </div>
+                <span class="badge-skin-type">
+                    {{ latest_scan.skin_type if latest_scan else (current_user.skin_type if current_user else 'Combination') }} Skin
+                </span>
+            </div>
+            <div class="patient-biomarker-grid">
+                <div class="biomarker-pill">
+                    <span class="bio-label">Health Index</span>
+                    <span class="bio-val">{{ "%.0f"|format(latest_scan.overall_score) if latest_scan else '90' }}%</span>
+                </div>
+                <div class="biomarker-pill">
+                    <span class="bio-label">Sebum</span>
+                    <span class="bio-val">{{ latest_scan.oiliness_level if latest_scan else 'Moderate' }}</span>
+                </div>
+                <div class="biomarker-pill">
+                    <span class="bio-label">Erythema</span>
+                    <span class="bio-val">{{ latest_scan.redness_level if latest_scan else 'Low' }}</span>
+                </div>
+                <div class="biomarker-pill">
+                    <span class="bio-label">Texture</span>
+                    <span class="bio-val">{{ latest_scan.texture_level if latest_scan else 'Smooth' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Body -->
+        <div id="skineChatBody" class="skine-chat-body"></div>
+
+        <!-- Suggested Inquiry Chips -->
+        <div class="skine-chat-chips">
+            <button class="chat-chip-btn">Impact of sebum level on barrier function</button>
+            <button class="chat-chip-btn">Niacinamide and Vitamin C layering compatibility</button>
+            <button class="chat-chip-btn">Recommended photoprotection formula for my skin</button>
+            <button class="chat-chip-btn">Epidermal barrier restoration protocol</button>
+        </div>
+
+        <!-- Footer Input -->
+        <div class="skine-chat-footer">
+            <div class="chat-input-wrapper">
+                <input id="skineChatInput" type="text" class="chat-input" placeholder="Ask about active ingredients, routines, product compatibility...">
+                <button id="skineChatSend" class="chat-send-btn" title="Send inquiry">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </button>
+            </div>
+            <div class="text-center mt-2">
+                <span class="chat-disclaimer">AI-generated responses · Not 100% accurate · Informational guidance only</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Custom JS -->
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
 
 </body>
 </html>

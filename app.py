@@ -92,18 +92,23 @@ def serve_uploads(filename):
 
 @app.context_processor
 def inject_user_context():
-    """Make user info and unread notification count globally accessible in templates."""
+    """Make user info, latest scan, and unread notification count globally accessible in templates."""
     user = None
     unread_notifications = 0
+    latest_scan = None
     if "user_id" in session:
         user = get_user_by_id(session["user_id"])
         if user:
             notifications = get_user_notifications(session["user_id"])
             unread_notifications = sum(1 for n in notifications if not n.get("is_read"))
+            latest_scan = get_latest_user_scan(session["user_id"])
+    if not latest_scan and "analysis_result" in session:
+        latest_scan = session.get("analysis_result")
     return {
         "current_user": user,
         "is_authenticated": user is not None,
         "unread_notifications_count": unread_notifications,
+        "latest_scan": latest_scan,
     }
 
 
