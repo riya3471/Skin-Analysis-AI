@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <>
       {/* ================= HERO ================= */}
@@ -28,11 +31,19 @@ export default function Home() {
                 what it needs to stay healthy, radiant and naturally glowing.
               </p>
 
-              <Link to="/login" className="hero-btn">
-                <i className="fa-solid fa-right-to-bracket"></i>
-                {" Let's Start "}
-                <i className="fa-solid fa-arrow-right"></i>
-              </Link>
+              {isAuthenticated ? (
+                <Link to="/scanner" className="hero-btn">
+                  <i className="fa-solid fa-camera me-2"></i>
+                  Start AI Scan
+                  <i className="fa-solid fa-arrow-right ms-2"></i>
+                </Link>
+              ) : (
+                <Link to="/login" className="hero-btn">
+                  <i className="fa-solid fa-right-to-bracket me-2"></i>
+                  Let's Start
+                  <i className="fa-solid fa-arrow-right ms-2"></i>
+                </Link>
+              )}
             </div>
 
             {/* Right */}
@@ -292,9 +303,16 @@ export default function Home() {
             <p>
               Start your AI skin analysis today and receive personalized skincare insights.
             </p>
-            <Link to="/login" className="hero-btn">
-              Let's Start
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/scanner" className="hero-btn">
+                <i className="fa-solid fa-camera me-2"></i>
+                Start AI Scan
+              </Link>
+            ) : (
+              <Link to="/login" className="hero-btn">
+                Let's Start
+              </Link>
+            )}
           </div>
         </div>
       </section>

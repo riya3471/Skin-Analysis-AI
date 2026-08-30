@@ -33,15 +33,15 @@
                     Our AI technology analyzes your skin and helps you discover
                     what it needs to stay healthy, radiant and naturally glowing.
                 </p>
+                {% if session.get('user_id') %}
+                <a href="{{ url_for('scanner') }}" class="hero-btn">
+                    <i class="fa-solid fa-camera me-2"></i> Start AI Scan <i class="fa-solid fa-arrow-right ms-2"></i>
+                </a>
+                {% else %}
                 <a href="{{ url_for('login') }}" class="hero-btn">
-
-    <i class="fa-solid fa-right-to-bracket"></i>
-
-    Let's Start
-
-    <i class="fa-solid fa-arrow-right"></i>
-
-</a>
+                    <i class="fa-solid fa-right-to-bracket me-2"></i> Let's Start <i class="fa-solid fa-arrow-right ms-2"></i>
+                </a>
+                {% endif %}
 
 
             </div>
@@ -448,9 +448,15 @@
             <p>
                 Start your AI skin analysis today and receive personalized skincare insights.
             </p>
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('scanner') }}" class="hero-btn">
+                <i class="fa-solid fa-camera me-2"></i> Start AI Scan
+            </a>
+            {% else %}
             <a href="{{ url_for('login') }}" class="hero-btn">
-    Let's Start
-</a>
+                Let's Start
+            </a>
+            {% endif %}
 
           
         </div>
