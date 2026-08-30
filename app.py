@@ -593,11 +593,15 @@ def api_chat():
 
         data = request.get_json() or {}
         user_message = (data.get("message") or "").strip()
+        attached_image = data.get("image") or ""
         history = data.get("history") or []
         client_context = data.get("context") or {}
 
-        if not user_message:
-            return jsonify({"success": False, "message": "Message cannot be empty."}), 400
+        if not user_message and not attached_image:
+            return jsonify({"success": False, "message": "Message or image cannot be empty."}), 400
+
+        if not user_message and attached_image:
+            user_message = "Please analyze this product label, ingredients, or skin image in detail and give personalized recommendations for my skin profile."
 
         # Retrieve user scan context
         latest_scan = get_latest_user_scan(user_id)
@@ -632,11 +636,13 @@ def api_chat():
         system_instruction = (
             "You are Skiné AI, an intelligent and helpful artificial intelligence assistant with specialized expertise in cosmetic dermatology, active ingredient formulations, and personalized skincare routines.\n\n"
             "CORE BEHAVIORAL GUIDELINES:\n"
-            "1. PROMPT ALIGNMENT: Directly address the user's exact inquiry. If the user asks a general question (e.g., about web development like CSS, science, or general facts), answer their question accurately and concisely, then politely mention your primary focus is personalized skincare guidance.\n"
+            "1. PROMPT ALIGNMENT: Directly address the user's exact inquiry. If the user asks a general question (e.g., about web development, science, or general topics), answer accurately, then connect back to personalized skincare guidance.\n"
             "2. SKINCARE EXPERTISE: When answering skincare questions, provide evidence-based, scientifically accurate guidance tailored to their scan biomarkers. Do NOT repeat generic introductory greetings on every turn—answer their question immediately.\n"
-            "3. COMPLETE & STRUCTURED: Complete every thought and explanation thoroughly without cutting off. Use bold markdown headings and bullet points for clean readability.\n"
-            "4. EMOJI-FREE & PROFESSIONAL: Do NOT use emojis. Maintain an articulate, professional, and clear tone.\n"
-            "5. COMPLIANCE: You are an AI assistant and not a licensed medical doctor. Advice is for cosmetic informational guidance.\n\n"
+            "3. COMPLETE & STRUCTURED: Complete every thought thoroughly without cutting off. Use bold markdown headings and bullet points for clean readability.\n"
+            "4. EMOJI-FREE & PROFESSIONAL: Do NOT use emojis. Maintain an articulate, professional, and clinical tone.\n"
+            "5. NEPAL-ACCESSIBLE PRODUCTS & HYPERLINKS: All recommended skincare products must be easily accessible and purchasable in Nepal (such as popular, widely stocked pharmacy and clinical brands in Nepal: CeraVe, Cetaphil, Minimalist, The Ordinary, Cosrx, La Roche-Posay, Derma Co, Sebamed, Neutrogena, Biotique, etc.). When recommending specific products, always provide helpful, clickable markdown hyperlinks prioritizing Nepal-based e-commerce search platforms like Daraz Nepal (https://www.daraz.com.np/catalog/?q=...), Jeevee Nepal (https://www.jeevee.com/search?q=...), Sastodeal, or official brand regional sites. Example format: [CeraVe Hydrating Cleanser on Daraz Nepal](https://www.daraz.com.np/catalog/?q=CeraVe+Hydrating+Cleanser) or [Minimalist Niacinamide on Jeevee](https://www.jeevee.com/search?q=Minimalist+Niacinamide).\n"
+            "6. MULTIMODAL IMAGE & LABEL ANALYSIS: When the user provides or pastes an image (e.g., cosmetic bottle, ingredient list, barcode, or skin close-up), carefully transcribe and analyze the visible ingredients, identify beneficial actives vs comedogenic or irritating ingredients, assess compatibility with the user's skin biomarkers, and recommend the optimal routine step or Nepal-accessible purchase link.\n"
+            "7. COMPLIANCE: You are an AI assistant and not a licensed medical doctor. Advice is for cosmetic and informational guidance.\n\n"
             "USER FACIAL BIOMARKER PROFILE (For Skincare Context):\n"
             f"- Skin Type: {skin_type}\n"
             f"- Health Index: {overall_score}%\n"
@@ -678,8 +684,28 @@ def api_chat():
                 if text:
                     contents.append({"role": role, "parts": [{"text": text}]})
 
-            # Append user's current inquiry
-            contents.append({"role": "user", "parts": [{"text": user_message}]})
+            # Build user's current inquiry parts (multimodal if image attached)
+            current_user_parts = []
+            if attached_image:
+                mime_type = "image/jpeg"
+                b64_clean = attached_image
+                if "," in attached_image:
+                    header, b64_clean = attached_image.split(",", 1)
+                    if "image/png" in header:
+                        mime_type = "image/png"
+                    elif "image/webp" in header:
+                        mime_type = "image/webp"
+                    elif "image/gif" in header:
+                        mime_type = "image/gif"
+                current_user_parts.append({
+                    "inline_data": {
+                        "mime_type": mime_type,
+                        "data": b64_clean.strip()
+                    }
+                })
+
+            current_user_parts.append({"text": user_message})
+            contents.append({"role": "user", "parts": current_user_parts})
 
             payload = {
                 "system_instruction": {
@@ -705,7 +731,7 @@ def api_chat():
                             "x-goog-api-key": api_key
                         }
                     )
-                    with urllib.request.urlopen(req, timeout=18) as response:
+                    with urllib.request.urlopen(req, timeout=10) as response:
                         resp_body = json.loads(response.read().decode("utf-8"))
                         reply_text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
                         used_model = model_name
@@ -723,6 +749,7 @@ def api_chat():
                     f"• **Current Assessment**: Your scan measured **{oiliness_level} sebum output** with a **{skin_type} skin classification**.\n"
                     f"• **Barrier Balance**: While adequate sebum prevents dryness, excessive sebum oxidation can compromise the skin microbiome and lead to micro-comedones.\n"
                     f"• **Recommended Action**: Use a gentle, low-pH cleanser followed by **Niacinamide (2-5%)** to regulate sebum output without stripping natural barrier lipids.\n"
+                    f"• **Nepal Available Options**: Consider [Minimalist 10% Niacinamide on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Minimalist+Niacinamide) or [Derma Co Niacinamide on Jeevee](https://www.jeevee.com/search?q=Derma+Co+Niacinamide).\n"
                     f"• **Key Tip**: Never skip moisturizer; dehydrated skin often compensates by overproducing sebum."
                 )
             elif "retinol" in msg_lower or "retinoid" in msg_lower:
@@ -731,6 +758,7 @@ def api_chat():
                     f"Retinoids accelerate cellular turnover and stimulate collagen synthesis, making them a gold-standard active for texture refinement and barrier health when introduced gradually.\n\n"
                     f"• **Titration Schedule**: Start 2 nights per week for the first 2 weeks. Gradually increase to alternate nights as tolerance develops.\n"
                     f"• **Buffering Technique**: For your **{skin_type}** skin, apply moisturizer first (or sandwich the retinoid between light moisturizer layers) to minimize erythema.\n"
+                    f"• **Nepal Available Options**: Check [The Ordinary Granactive Retinoid on Daraz Nepal](https://www.daraz.com.np/catalog/?q=The+Ordinary+Retinoid) or [Minimalist Retinol on Jeevee](https://www.jeevee.com/search?q=Minimalist+Retinol).\n"
                     f"• **Contraindications**: Do NOT layer Retinol directly with AHAs/BHAs (Salicylic or Glycolic Acid) or pure L-Ascorbic Acid in the same application window.\n"
                     f"• **Essential Step**: Daily broad-spectrum SPF 50 sunscreen is mandatory every morning."
                 )
@@ -739,15 +767,15 @@ def api_chat():
                     f"### Optimal Photoprotection Protocol for {skin_type} Skin\n\n"
                     f"Broad-spectrum photoprotection is the most critical pillar for preventing photo-aging, hyperpigmentation, and barrier degradation.\n\n"
                     f"• **Formula Recommendation**: For **{skin_type} skin with {oiliness_level} oiliness**, choose a lightweight fluid or water-gel sunscreen with PA++++ rating.\n"
-                    f"• **UV Filters**: Hybrid or modern chemical filters (like Tinosorb S/M) offer zero white cast, while mineral Zinc Oxide provides anti-inflammatory benefits for sensitive areas.\n"
+                    f"• **Nepal Available Options**: [Minimalist SPF 50 on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Minimalist+Sunscreen+SPF+50), [Cosrx Aloe Soothing Sun Cream on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Cosrx+Aloe+Sunscreen), or [Cetaphil Sunscreen on Jeevee](https://www.jeevee.com/search?q=Cetaphil+Sunscreen).\n"
                     f"• **Application Dosage**: Apply two finger lengths (approx. 1/4 teaspoon) to the face and neck every morning as the final routine step."
                 )
-            elif "barrier" in msg_lower or "repair" in msg_lower:
+            elif "barrier" in msg_lower or "repair" in msg_lower or "cleanser" in msg_lower:
                 reply_text = (
-                    f"### Epidermal Barrier Restoration Protocol\n\n"
+                    f"### Epidermal Barrier Restoration & Cleansing Protocol\n\n"
                     f"A healthy stratum corneum relies on an optimal 3:1:1 physiological ratio of ceramides, cholesterol, and free fatty acids.\n\n"
-                    f"• **Immediate Action**: Pause all strong exfoliating acids (AHAs/BHAs) and high-strength retinoids for 7-14 days.\n"
                     f"• **Key Hydrators**: Favor **Centella Asiatica (Cica)**, **Panthenol (Vitamin B5)**, and **Ceramide NP** to restore intercellular cement.\n"
+                    f"• **Nepal Available Options**: [CeraVe Hydrating Cleanser on Daraz Nepal](https://www.daraz.com.np/catalog/?q=CeraVe+Hydrating+Cleanser), [Cetaphil Gentle Skin Cleanser on Jeevee](https://www.jeevee.com/search?q=Cetaphil+Gentle+Skin+Cleanser), or [Cosrx Centella Cream on Daraz](https://www.daraz.com.np/catalog/?q=Cosrx+Centella).\n"
                     f"• **Cleansing Routine**: Wash only with lukewarm water or a sulfate-free non-foaming cream cleanser."
                 )
             else:
@@ -757,6 +785,7 @@ def api_chat():
                     f"• **Targeted Active Regimen**: Prioritize **{ingredients_summary}** to promote optimal lipid balance and cellular renewal.\n"
                     f"• **AM Protocol**: Gentle Cleanser -> Hydrating Serum -> Lightweight Barrier Cream -> Broad-Spectrum SPF 50.\n"
                     f"• **PM Protocol**: Double Cleanse -> Active Treatment (on dry skin) -> Ceramide Nourishing Cream.\n"
+                    f"• **Nepal Available Stores**: Explore verified skincare products on [Daraz Nepal Skincare](https://www.daraz.com.np/health-beauty-skin-care/) and [Jeevee Health Nepal](https://www.jeevee.com/).\n"
                     f"• **Precautionary Notes**: Avoid {avoid_summary} to maintain stratum corneum equilibrium."
                 )
 

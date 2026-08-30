@@ -309,14 +309,33 @@
 
         <!-- Footer Input -->
         <div class="skine-chat-footer">
+            <!-- Hidden File Input -->
+            <input type="file" id="skineChatFileInput" accept="image/*" class="d-none">
+
+            <!-- Attached Image Preview Strip -->
+            <div id="skineChatImagePreview" class="chat-image-preview-bar d-none">
+                <div class="d-flex align-items-center gap-2">
+                    <img id="skineChatPreviewThumb" src="" alt="Thumbnail" class="chat-preview-thumb">
+                    <span class="chat-preview-text">Image ready for formulation analysis (Ctrl+V supported)</span>
+                </div>
+                <button id="skineChatRemoveImageBtn" type="button" class="chat-preview-remove-btn" title="Remove image">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
             <div class="chat-input-wrapper">
-                <input id="skineChatInput" type="text" class="chat-input" placeholder="Ask about active ingredients, routines, product compatibility...">
+                <!-- Upload / Paste Button -->
+                <button id="skineChatUploadBtn" type="button" class="chat-upload-btn" title="Upload or paste product label image">
+                    <i class="fa-solid fa-image"></i>
+                </button>
+
+                <input id="skineChatInput" type="text" class="chat-input" placeholder="Ask a question or paste an image/label (Ctrl+V)...">
                 <button id="skineChatSend" class="chat-send-btn" title="Send inquiry">
                     <i class="fa-solid fa-arrow-up"></i>
                 </button>
             </div>
             <div class="text-center mt-2">
-                <span class="chat-disclaimer">AI-generated responses · Not 100% accurate · Informational guidance only</span>
+                <span class="chat-disclaimer">AI-generated responses · Click links to view verified stores · Informational guidance only</span>
             </div>
         </div>
         {% endif %}
