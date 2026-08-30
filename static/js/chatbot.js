@@ -1,18 +1,28 @@
-// Skiné AI Chatbot Controller (Production Web App)
+// Skiné AI Chatbot Controller (Production Web App with Adjustable Card)
 
 document.addEventListener('DOMContentLoaded', () => {
     const launcher = document.getElementById('skineChatLauncher');
     const card = document.getElementById('skineChatCard');
     const minimizeBtn = document.getElementById('skineChatMinimize');
+    const maximizeBtn = document.getElementById('skineChatMaximize');
+    const maximizeIcon = document.getElementById('skineChatMaximizeIcon');
     const resetBtn = document.getElementById('skineChatReset');
     const body = document.getElementById('skineChatBody');
     const input = document.getElementById('skineChatInput');
     const sendBtn = document.getElementById('skineChatSend');
     const chipBtns = document.querySelectorAll('.chat-chip-btn');
 
+    const resizeCorner = document.getElementById('skineChatResizeCorner');
+    const resizeTop = document.getElementById('skineChatResizeTop');
+    const resizeLeft = document.getElementById('skineChatResizeLeft');
+    const grabBar = document.getElementById('skineChatGrabBar');
+
     if (!launcher || !card) return;
 
     let isLoading = false;
+    let isMaximized = false;
+    let currentWidth = 450;
+    let currentHeight = 630;
     let messages = [];
 
     // Get user info and latest scan data from DOM data attributes
@@ -45,6 +55,81 @@ document.addEventListener('DOMContentLoaded', () => {
             launcher.classList.remove('d-none');
         });
     }
+
+    // Maximize / Restore Toggle
+    if (maximizeBtn) {
+        maximizeBtn.addEventListener('click', () => {
+            isMaximized = !isMaximized;
+            if (isMaximized) {
+                card.classList.add('is-maximized');
+                card.style.width = 'min(820px, calc(100vw - 36px))';
+                card.style.height = 'min(860px, calc(100vh - 48px))';
+                if (maximizeIcon) {
+                    maximizeIcon.className = 'fa-solid fa-compress';
+                }
+                if (grabBar) grabBar.classList.add('d-none');
+            } else {
+                card.classList.remove('is-maximized');
+                card.style.width = `${currentWidth}px`;
+                card.style.height = `${currentHeight}px`;
+                if (maximizeIcon) {
+                    maximizeIcon.className = 'fa-solid fa-expand';
+                }
+                if (grabBar) grabBar.classList.remove('d-none');
+            }
+            scrollToBottom();
+        });
+    }
+
+    // Interactive Drag-to-Resize Handlers
+    function setupResize(handleEl, direction) {
+        if (!handleEl) return;
+
+        handleEl.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startW = card.offsetWidth;
+            const startH = card.offsetHeight;
+
+            function onMouseMove(moveEvent) {
+                const deltaX = startX - moveEvent.clientX; // Drag left = wider
+                const deltaY = startY - moveEvent.clientY; // Drag up = taller
+
+                if (direction === 'nw' || direction === 'w') {
+                    const newW = Math.min(Math.max(340, startW + deltaX), window.innerWidth - 36);
+                    currentWidth = newW;
+                    card.style.width = `${newW}px`;
+                }
+
+                if (direction === 'nw' || direction === 'n') {
+                    const newH = Math.min(Math.max(420, startH + deltaY), window.innerHeight - 50);
+                    currentHeight = newH;
+                    card.style.height = `${newH}px`;
+                }
+
+                if (isMaximized) {
+                    isMaximized = false;
+                    card.classList.remove('is-maximized');
+                    if (maximizeIcon) maximizeIcon.className = 'fa-solid fa-expand';
+                    if (grabBar) grabBar.classList.remove('d-none');
+                }
+            }
+
+            function onMouseUp() {
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            }
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        });
+    }
+
+    setupResize(resizeCorner, 'nw');
+    setupResize(resizeTop, 'n');
+    setupResize(resizeLeft, 'w');
+    setupResize(grabBar, 'n');
 
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {

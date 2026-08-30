@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
@@ -8,6 +8,8 @@ export default function ChatWidget() {
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 450, height: 630 });
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -37,6 +39,7 @@ export default function ChatWidget() {
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const isResizingRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,6 +67,56 @@ export default function ChatWidget() {
     window.addEventListener('open-skine-chat', handleExternalPrompt);
     return () => window.removeEventListener('open-skine-chat', handleExternalPrompt);
   }, [messages, isAuthenticated, analysisResult]);
+
+  // Interactive Seamless Resizing handlers
+  const startResize = useCallback((direction, e) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = dimensions.width;
+    const startHeight = dimensions.height;
+
+    const onMouseMove = (moveEvent) => {
+      if (!isResizingRef.current) return;
+      const deltaX = startX - moveEvent.clientX; // Dragging left increases width
+      const deltaY = startY - moveEvent.clientY; // Dragging up increases height
+
+      setDimensions((prev) => {
+        let newWidth = prev.width;
+        let newHeight = prev.height;
+
+        if (direction === 'nw' || direction === 'w') {
+          newWidth = Math.min(
+            Math.max(340, startWidth + deltaX),
+            window.innerWidth - 36
+          );
+        }
+        if (direction === 'nw' || direction === 'n') {
+          newHeight = Math.min(
+            Math.max(420, startHeight + deltaY),
+            window.innerHeight - 50
+          );
+        }
+
+        return { width: newWidth, height: newHeight };
+      });
+      setIsMaximized(false);
+    };
+
+    const onMouseUp = () => {
+      isResizingRef.current = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }, [dimensions]);
+
+  const toggleMaximize = () => {
+    setIsMaximized(!isMaximized);
+  };
 
   const clinicalQuestions = [
     'Impact of sebum level on barrier function',
@@ -216,6 +269,17 @@ export default function ChatWidget() {
     });
   };
 
+  const cardStyle = isMaximized
+    ? {
+        width: 'min(820px, calc(100vw - 36px))',
+        height: 'min(860px, calc(100vh - 48px))',
+        transition: 'width 0.25s ease, height 0.25s ease',
+      }
+    : {
+        width: `${dimensions.width}px`,
+        height: `${dimensions.height}px`,
+      };
+
   return (
     <div className="skine-chat-container">
       {/* FLOATING LAUNCHER BUTTON */}
@@ -241,11 +305,46 @@ export default function ChatWidget() {
         </button>
       )}
 
-      {/* EXPANDABLE CHAT PANEL */}
+      {/* ADJUSTABLE EXPANDABLE CHAT PANEL */}
       {isOpen && (
-        <div className="skine-chat-card shadow-lg">
-          {/* Header */}
+        <div
+          className={`skine-chat-card shadow-lg ${isMaximized ? 'is-maximized' : ''}`}
+          style={cardStyle}
+        >
+          {/* Seamless Edge & Corner Resize Triggers (No Clunky Boxes) */}
+          {!isMaximized && (
+            <>
+              <div
+                className="chat-resize-edge-top"
+                onMouseDown={(e) => startResize('n', e)}
+                title="Drag edge to resize height"
+              />
+              <div
+                className="chat-resize-edge-left"
+                onMouseDown={(e) => startResize('w', e)}
+                title="Drag edge to resize width"
+              />
+              <div
+                className="chat-resize-edge-corner"
+                onMouseDown={(e) => startResize('nw', e)}
+                title="Drag corner to resize"
+              />
+            </>
+          )}
+
+          {/* Header with Grab Bar */}
           <div className="skine-chat-header">
+            {/* Elegant iOS-style Top Grab Handle */}
+            {!isMaximized && (
+              <div
+                className="chat-grab-bar-wrap"
+                onMouseDown={(e) => startResize('n', e)}
+                title="Drag to adjust height"
+              >
+                <span className="chat-grab-bar"></span>
+              </div>
+            )}
+
             <div className="d-flex align-items-center justify-content-between">
               <div className="d-flex align-items-center gap-3">
                 <div className="chat-avatar-circle">
@@ -261,6 +360,21 @@ export default function ChatWidget() {
               </div>
 
               <div className="d-flex align-items-center gap-2">
+                {/* Maximize / Restore Toggle */}
+                <button
+                  className="chat-header-btn"
+                  onClick={toggleMaximize}
+                  title={isMaximized ? 'Restore standard size' : 'Expand / Maximize card'}
+                >
+                  <i
+                    className={`fa-solid ${
+                      isMaximized
+                        ? 'fa-compress'
+                        : 'fa-expand'
+                    }`}
+                  ></i>
+                </button>
+
                 {isAuthenticated && (
                   <button
                     className="chat-header-btn"

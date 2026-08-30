@@ -201,8 +201,18 @@
          data-skin-type="{{ latest_scan.skin_type if latest_scan else (current_user.skin_type if current_user else 'Combination') }}"
          data-score="{{ latest_scan.overall_score if latest_scan else '90' }}">
         
+        <!-- Seamless Edge & Corner Resize Triggers (Invisible by default, responsive to drag) -->
+        <div id="skineChatResizeCorner" class="chat-resize-edge-corner" title="Drag corner to resize"></div>
+        <div id="skineChatResizeTop" class="chat-resize-edge-top" title="Drag edge to resize height"></div>
+        <div id="skineChatResizeLeft" class="chat-resize-edge-left" title="Drag edge to resize width"></div>
+
         <!-- Header -->
         <div class="skine-chat-header">
+            <!-- Elegant iOS-style Top Grab Handle -->
+            <div id="skineChatGrabBar" class="chat-grab-bar-wrap" title="Drag to adjust height">
+                <span class="chat-grab-bar"></span>
+            </div>
+
             <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-3">
                     <div class="chat-avatar-circle">
@@ -217,6 +227,10 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
+                    <!-- Maximize / Restore Button -->
+                    <button id="skineChatMaximize" class="chat-header-btn" title="Toggle maximize">
+                        <i id="skineChatMaximizeIcon" class="fa-solid fa-expand"></i>
+                    </button>
                     {% if is_authenticated %}
                     <button id="skineChatReset" class="chat-header-btn" title="Reset conversation">
                         <i class="fa-solid fa-rotate-right"></i>
