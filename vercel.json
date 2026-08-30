@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "regions": ["sin1", "hnd1", "bom1"],
+  "regions": ["hnd1"],
   "builds": [
     {
       "src": "app.py",
