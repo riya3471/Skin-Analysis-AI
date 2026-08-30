@@ -37,8 +37,15 @@ def get_db_path():
     return db_env
 
 
-def get_db_connection():
-    """Get a raw connection to PostgreSQL or SQLite."""
+try:
+    from flask import g, has_request_context
+except ImportError:
+    g = None
+    has_request_context = lambda: False
+
+
+def create_raw_connection():
+    """Create a new raw connection to PostgreSQL or SQLite."""
     if is_postgres():
         if psycopg2 is None:
             raise RuntimeError("psycopg2-binary is required for PostgreSQL connections.")
@@ -52,6 +59,35 @@ def get_db_connection():
         return conn
 
 
+def get_db_connection():
+    """Get a database connection, reusing the open connection within the current Flask request context if available."""
+    if has_request_context() and g is not None:
+        if not hasattr(g, "_db_conn") or g._db_conn is None:
+            g._db_conn = create_raw_connection()
+        else:
+            # Verify connection is still alive (especially for Postgres)
+            if is_postgres():
+                try:
+                    if getattr(g._db_conn, "closed", 0) != 0:
+                        g._db_conn = create_raw_connection()
+                except Exception:
+                    g._db_conn = create_raw_connection()
+        return g._db_conn
+    return create_raw_connection()
+
+
+def close_db(e=None):
+    """Close the request-scoped database connection at the end of the request."""
+    if g is not None:
+        conn = getattr(g, "_db_conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            g._db_conn = None
+
+
 def adapt_sql(sql):
     """Convert SQLite ? placeholders to PostgreSQL %s if using Postgres."""
     if is_postgres():
@@ -62,6 +98,7 @@ def adapt_sql(sql):
 def execute_query(sql, params=(), fetch_one=False, fetch_all=False):
     """Unified query executor supporting both PostgreSQL and SQLite."""
     conn = get_db_connection()
+    is_scoped = has_request_context()
     try:
         adapted = adapt_sql(sql)
         cursor = conn.cursor()
@@ -76,12 +113,17 @@ def execute_query(sql, params=(), fetch_one=False, fetch_all=False):
             conn.commit()
             return None
     finally:
-        conn.close()
+        if not is_scoped:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def execute_insert(sql, params=(), returning="id"):
     """Unified insert executor that returns the new primary key."""
     conn = get_db_connection()
+    is_scoped = has_request_context()
     try:
         cursor = conn.cursor()
         if is_postgres():
@@ -99,7 +141,11 @@ def execute_insert(sql, params=(), returning="id"):
             conn.commit()
             return cursor.lastrowid
     finally:
-        conn.close()
+        if not is_scoped:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def execute_many(sql, seq_of_params):
@@ -107,13 +153,18 @@ def execute_many(sql, seq_of_params):
     if not seq_of_params:
         return
     conn = get_db_connection()
+    is_scoped = has_request_context()
     try:
         cursor = conn.cursor()
         adapted = adapt_sql(sql)
         cursor.executemany(adapted, seq_of_params)
         conn.commit()
     finally:
-        conn.close()
+        if not is_scoped:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def parse_datetime_to_ist(val):

@@ -25,6 +25,7 @@ load_dotenv()
 from models.skin_analysis import analyze_skin_image
 from db import (
     init_db,
+    close_db,
     get_user_by_email,
     get_user_by_id,
     create_user,
@@ -45,6 +46,12 @@ from db import (
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sk_skin_analysis_ai_secret_key_2026_9837a28")
+
+
+@app.teardown_appcontext
+def teardown_db(exception=None):
+    close_db(exception)
+
 
 # Setup base upload directories (using /tmp on Vercel)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -172,7 +179,7 @@ def register():
             flash("An account with this email already exists. Please login.", "warning")
             return redirect(url_for("login"))
 
-        password_hash = generate_password_hash(password)
+        password_hash = generate_password_hash(password, method="pbkdf2:sha256:50000")
         try:
             user_id = create_user(full_name, email, password_hash)
             session["user_id"] = user_id
