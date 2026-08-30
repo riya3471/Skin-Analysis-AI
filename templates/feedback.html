@@ -94,7 +94,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="small fw-bold text-muted mb-0">Your Overall Rating</label>
                                 <span class="badge rounded-pill" id="ratingLabelBadge" style="background: rgba(217, 119, 6, 0.12); color: #d97706; font-size: 0.78rem; font-weight: 600;">
-                                    ✨ Exceptional
+                                    Exceptional
                                 </span>
                             </div>
 
@@ -234,18 +234,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const ratingLabelBadge = document.getElementById("ratingLabelBadge");
 
     const labels = {
-        1: "😕 Needs Improvement",
-        2: "😐 Fair",
-        3: "🙂 Good",
-        4: "😊 Great",
-        5: "✨ Exceptional"
+        1: "Needs Improvement",
+        2: "Fair",
+        3: "Good",
+        4: "Great",
+        5: "Exceptional"
     };
 
     stars.forEach(star => {
         star.addEventListener("click", () => {
             const val = parseInt(star.getAttribute("data-value"));
             ratingInput.value = val;
-            if (ratingLabelBadge) ratingLabelBadge.textContent = labels[val] || "✨ Exceptional";
+            if (ratingLabelBadge) ratingLabelBadge.textContent = labels[val] || "Exceptional";
 
             stars.forEach((s, idx) => {
                 if (idx < val) {

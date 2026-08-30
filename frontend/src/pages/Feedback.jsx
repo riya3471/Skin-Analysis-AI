@@ -3,11 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
 const RATING_LABELS = {
-  1: { label: 'Needs Improvement', emoji: '😕', desc: 'Encountered issues or inaccurate scan' },
-  2: { label: 'Fair', emoji: '😐', desc: 'Acceptable but has room for improvement' },
-  3: { label: 'Good', emoji: '🙂', desc: 'Met expectations and was helpful' },
-  4: { label: 'Great', emoji: '😊', desc: 'Very accurate biomarkers and routines' },
-  5: { label: 'Exceptional', emoji: '✨', desc: 'Extremely fast, precise, and practical' },
+  1: { label: 'Needs Improvement', desc: 'Encountered issues or inaccurate scan' },
+  2: { label: 'Fair', desc: 'Acceptable but has room for improvement' },
+  3: { label: 'Good', desc: 'Met expectations and was helpful' },
+  4: { label: 'Great', desc: 'Very accurate biomarkers and routines' },
+  5: { label: 'Exceptional', desc: 'Extremely fast, precise, and practical' },
 };
 
 const CATEGORIES = [
