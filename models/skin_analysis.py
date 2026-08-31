@@ -234,49 +234,131 @@ def analyze_skin_image(image_path, output_dir=None):
         }
 
     # =====================================================
-    # FACE DETECTION & BOUNDING BOX REFINEMENT
+    # FACE DETECTION & MULTI-ANGLE BOUNDING BOX REFINEMENT
     # =====================================================
     face_box = None
 
-    if hasattr(cv2, "CascadeClassifier"):
-        try:
-            cascade_file = "haarcascade_frontalface_default.xml"
-            if hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
-                cascade_file = os.path.join(cv2.data.haarcascades, cascade_file)
-            face_cascade = cv2.CascadeClassifier(cascade_file)
-            faces = face_cascade.detectMultiScale(
-                gray_full,
-                scaleFactor=1.1,
-                minNeighbors=4,
-                minSize=(int(w_img * 0.15), int(h_img * 0.15))
-            )
-            if len(faces) > 0:
-                face_box = max(faces, key=lambda b: b[2] * b[3])
-        except Exception:
-            pass
+    # Helper: Multi-scale & Multi-rotation Haar Detection
+    def detect_face_multiscale(gray_img, w_i, h_i):
+        cascade_names = [
+            "haarcascade_frontalface_default.xml",
+            "haarcascade_frontalface_alt2.xml",
+            "haarcascade_profileface.xml"
+        ]
+        cascades = []
+        for cf in cascade_names:
+            try:
+                cf_path = cf
+                if hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
+                    cf_path = os.path.join(cv2.data.haarcascades, cf)
+                if os.path.exists(cf_path):
+                    c = cv2.CascadeClassifier(cf_path)
+                    if not c.empty():
+                        cascades.append(c)
+                elif hasattr(cv2, "CascadeClassifier"):
+                    c = cv2.CascadeClassifier(cf)
+                    if not c.empty():
+                        cascades.append(c)
+            except Exception:
+                pass
 
-    if face_box is None:
+        if not cascades:
+            return None
+
+        # 1. Try upright standard scale
+        for c in cascades:
+            try:
+                faces = c.detectMultiScale(
+                    gray_img,
+                    scaleFactor=1.08,
+                    minNeighbors=3,
+                    minSize=(int(w_i * 0.12), int(h_i * 0.12))
+                )
+                if len(faces) > 0:
+                    return max(faces, key=lambda b: b[2] * b[3])
+            except Exception:
+                pass
+
+        # 2. Try rotation angles for tilted head / lying down poses (+/-15, +/-25, +/-35 deg)
+        center_pt = (w_i // 2, h_i // 2)
+        for angle in [15, -15, 25, -25, 35, -35, 45, -45]:
+            try:
+                M = cv2.getRotationMatrix2D(center_pt, angle, 1.0)
+                rotated_gray = cv2.warpAffine(gray_img, M, (w_i, h_i), flags=cv2.INTER_LINEAR)
+                for c in cascades:
+                    faces = c.detectMultiScale(
+                        rotated_gray,
+                        scaleFactor=1.08,
+                        minNeighbors=3,
+                        minSize=(int(w_i * 0.12), int(h_i * 0.12))
+                    )
+                    if len(faces) > 0:
+                        bx, by, bw, bh = max(faces, key=lambda b: b[2] * b[3])
+                        # Un-rotate center back to original frame
+                        box_center_rot = np.array([bx + bw / 2.0, by + bh / 2.0, 1.0])
+                        M_inv = cv2.getRotationMatrix2D(center_pt, -angle, 1.0)
+                        orig_center = M_inv.dot(box_center_rot)
+                        orig_x = int(max(0, orig_center[0] - bw / 2.0))
+                        orig_y = int(max(0, orig_center[1] - bh / 2.0))
+                        orig_w = int(min(w_i - orig_x, bw))
+                        orig_h = int(min(h_i - orig_y, bh))
+                        if orig_w > 30 and orig_h > 30:
+                            return (orig_x, orig_y, orig_w, orig_h)
+            except Exception:
+                pass
+        return None
+
+    face_box = detect_face_multiscale(gray_full, w_img, h_img)
+
+    # 3. Robust Skin Contour & Cluster Segmentation Fallback
+    full_skin_mask = get_skin_mask(image)
+    skin_pixels_total = np.count_nonzero(full_skin_mask)
+    total_img_pixels = max(1, h_img * w_img)
+    skin_ratio_full = float(skin_pixels_total) / float(total_img_pixels)
+
+    if face_box is None and skin_ratio_full >= 0.03:
         try:
-            ycrcb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
-            skin_mask = cv2.inRange(
-                ycrcb,
-                np.array([0, 133, 77], dtype=np.uint8),
-                np.array([255, 173, 127], dtype=np.uint8)
-            )
-            contours, _ = cv2.findContours(skin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Focus on upper 85% of frame (face is above torso/shoulders)
+            upper_mask = full_skin_mask.copy()
+            upper_mask[int(h_img * 0.85):, :] = 0
+            contours, _ = cv2.findContours(upper_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
             valid_candidates = []
             for c in contours:
                 area = cv2.contourArea(c)
-                if area > (h_img * w_img * 0.06):
+                if area > (h_img * w_img * 0.025):
                     bx, by, bw, bh = cv2.boundingRect(c)
                     aspect = bh / max(1, bw)
-                    if 0.6 <= aspect <= 1.9:
+                    if 0.4 <= aspect <= 3.0:
                         valid_candidates.append((bx, by, bw, bh, area))
             if valid_candidates:
                 valid_candidates.sort(key=lambda x: x[4], reverse=True)
-                face_box = valid_candidates[0][:4]
-        except Exception:
-            pass
+                best_bx, best_by, best_bw, best_bh, _ = valid_candidates[0]
+                # Clamp height to natural face aspect if neck is included
+                if best_bh > best_bw * 1.35:
+                    best_bh = int(best_bw * 1.35)
+                face_box = (best_bx, best_by, best_bw, min(h_img - best_by, best_bh))
+            else:
+                # Skin centroid adaptive window
+                M = cv2.moments(upper_mask)
+                if M["m00"] > 0:
+                    cX = int(M["m10"] / M["m00"])
+                    cY = int(M["m01"] / M["m00"])
+                    crop_w = int(w_img * 0.58)
+                    crop_h = int(h_img * 0.62)
+                    crop_x = max(0, min(w_img - crop_w, cX - crop_w // 2))
+                    crop_y = max(0, min(h_img - crop_h, cY - crop_h // 2))
+                    face_box = (crop_x, crop_y, crop_w, crop_h)
+        except Exception as ex:
+            print(f"Skin contour localization note: {ex}")
+
+    # 4. Final Adaptive Central Facial Crop Fallback if human skin is present
+    if face_box is None and skin_ratio_full >= 0.04:
+        crop_w = int(w_img * 0.65)
+        crop_h = int(h_img * 0.65)
+        crop_x = max(0, (w_img - crop_w) // 2)
+        crop_y = max(0, int((h_img - crop_h) * 0.35))
+        face_box = (crop_x, crop_y, crop_w, crop_h)
 
     if face_box is None:
         return {
@@ -288,10 +370,10 @@ def analyze_skin_image(image_path, output_dir=None):
     face_raw = image[y:y + h, x:x + w]
     face_h, face_w = face_raw.shape[:2]
 
-    # Verify skin tone presence
+    # Verify skin tone presence (permissive threshold for low-lighting or tilted poses)
     face_skin_mask = get_skin_mask(face_raw)
     skin_ratio = float(np.count_nonzero(face_skin_mask)) / float(max(1, face_w * face_h))
-    if skin_ratio < 0.12:
+    if skin_ratio < 0.03 and skin_ratio_full < 0.04:
         return {
             "success": False,
             "message": "No skin tones detected in the face frame. Please ensure your face is clearly visible."
