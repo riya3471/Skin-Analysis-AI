@@ -84,7 +84,6 @@ def analyze_with_gemini_vision(image_path):
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         try:
-            import base64
             api_key = base64.b64decode("QVEuQWI4Uk42TG5rYlNoU2JDa3BDVjlyX2xtRGJVZEUwUjRvYzZXN0FPQ0I3TVA0V0o4WVE=").decode("utf-8").strip()
         except Exception:
             api_key = ""
@@ -117,10 +116,11 @@ def analyze_with_gemini_vision(image_path):
         )
 
         models_to_try = [
-            "models/gemini-3.5-flash",
-            "models/gemini-3.6-flash",
-            "models/gemini-3.7-flash",
             "models/gemini-3.5-flash-lite",
+            "models/gemini-2.5-flash",
+            "models/gemini-2.0-flash",
+            "models/gemini-1.5-flash",
+            "models/gemini-3.5-flash",
         ]
 
         payload = {
@@ -147,7 +147,7 @@ def analyze_with_gemini_vision(image_path):
 
         for model_name in models_to_try:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
                 req = urllib.request.Request(
                     url,
                     data=json_bytes,

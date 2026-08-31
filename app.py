@@ -670,10 +670,11 @@ def api_chat():
 
         if api_key:
             models_to_try = [
-                "models/gemini-3.5-flash",
-                "models/gemini-3.6-flash",
-                "models/gemini-3.7-flash",
                 "models/gemini-3.5-flash-lite",
+                "models/gemini-2.5-flash",
+                "models/gemini-2.0-flash",
+                "models/gemini-1.5-flash",
+                "models/gemini-3.5-flash",
             ]
 
             contents = []
