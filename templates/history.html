@@ -122,15 +122,15 @@
                         <label class="form-label small fw-bold text-muted">Baseline Scan (Before)</label>
                         <select id="scanASelect" class="form-select custom-input mb-3" onchange="updateComparison()">
                             {% for item in history %}
-                            <option value="{{ item.id }}" {% if loop.first %}selected{% endif %}>
+                            <option value="{{ item.id }}" {% if loop.index == 2 or (history|length == 1 and loop.first) %}selected{% endif %}>
                                 {{ item.display_date }} - {{ item.skin_type }} ({{ item.overall_score }}%)
                             </option>
                             {% endfor %}
                         </select>
                         <div class="card p-3 bg-light border-0" id="scanACard" style="border-radius: 14px;">
-                            <h5 class="fw-bold text-success mb-1" id="scanASkinType">{{ history[0].skin_type }}</h5>
-                            <span class="small text-muted mb-2 d-block">Health Score: <strong id="scanAScore">{{ history[0].overall_score }}%</strong></span>
-                            <span class="small text-muted d-block">Condition: <strong id="scanACondition">{{ history[0].overall_condition or 'Healthy' }}</strong></span>
+                            <h5 class="fw-bold text-success mb-1" id="scanASkinType">{{ history[1].skin_type if history|length > 1 else history[0].skin_type }}</h5>
+                            <span class="small text-muted mb-2 d-block">Health Score: <strong id="scanAScore">{{ history[1].overall_score if history|length > 1 else history[0].overall_score }}%</strong></span>
+                            <span class="small text-muted d-block">Condition: <strong id="scanACondition">{{ history[1].overall_condition if history|length > 1 else (history[0].overall_condition or 'Healthy') }}</strong></span>
                         </div>
                     </div>
 
@@ -139,15 +139,15 @@
                         <label class="form-label small fw-bold text-muted">Recent Scan (After)</label>
                         <select id="scanBSelect" class="form-select custom-input mb-3" onchange="updateComparison()">
                             {% for item in history %}
-                            <option value="{{ item.id }}" {% if loop.index == 2 %}selected{% endif %}>
+                            <option value="{{ item.id }}" {% if loop.first %}selected{% endif %}>
                                 {{ item.display_date }} - {{ item.skin_type }} ({{ item.overall_score }}%)
                             </option>
                             {% endfor %}
                         </select>
                         <div class="card p-3 bg-light border-0" id="scanBCard" style="border-radius: 14px;">
-                            <h5 class="fw-bold text-success mb-1" id="scanBSkinType">{{ history[1].skin_type if history|length > 1 else history[0].skin_type }}</h5>
-                            <span class="small text-muted mb-2 d-block">Health Score: <strong id="scanBScore">{{ history[1].overall_score if history|length > 1 else history[0].overall_score }}%</strong></span>
-                            <span class="small text-muted d-block">Condition: <strong id="scanBCondition">{{ history[1].overall_condition if history|length > 1 else (history[0].overall_condition or 'Healthy') }}</strong></span>
+                            <h5 class="fw-bold text-success mb-1" id="scanBSkinType">{{ history[0].skin_type }}</h5>
+                            <span class="small text-muted mb-2 d-block">Health Score: <strong id="scanBScore">{{ history[0].overall_score }}%</strong></span>
+                            <span class="small text-muted d-block">Condition: <strong id="scanBCondition">{{ history[0].overall_condition or 'Healthy' }}</strong></span>
                         </div>
                     </div>
                 </div>

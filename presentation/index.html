@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skiné AI — Presentation Deck</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --cream: #F8F5EF;
+            --cream2: #FDFBF8;
+            --green: #707B57;
+            --green-dark: #596547;
+            --green-light: #EBF0E4;
+            --text: #2B2B2B;
+            --gray: #666666;
+            --gray-light: #999999;
+            --white: #FFFFFF;
+            --border: #E9E2D7;
+            --accent: #8B956F;
+            --shadow: 0 10px 30px rgba(89, 101, 71, 0.08);
+            --shadow-lg: 0 18px 45px rgba(89, 101, 71, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #1e2019;
+            color: var(--text);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Presentation Canvas (16:9 ratio) */
+        .deck-container {
+            position: relative;
+            width: 94vw;
+            max-width: 1400px;
+            aspect-ratio: 16 / 9;
+            max-height: 90vh;
+            background: var(--cream2);
+            border-radius: 20px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 4.5% 6%;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(30px);
+            transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            background: var(--cream2);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .slide.dark-theme {
+            background: linear-gradient(135deg, var(--green-dark), #3f4931);
+            color: var(--white);
+        }
+
+        /* Top Accent Bar */
+        .top-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--green-dark);
+        }
+
+        /* Decorative background elements */
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header typography */
+        .slide-header {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 2.5vh;
+        }
+
+        .slide-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--green-dark);
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        .slide.dark-theme .slide-title {
+            color: var(--cream);
+        }
+
+        .title-divider {
+            width: 70px;
+            height: 3px;
+            background: var(--green);
+            margin-top: 10px;
+            border-radius: 2px;
+        }
+
+        .slide-subtitle {
+            font-size: 0.95rem;
+            color: var(--gray);
+            margin-top: 10px;
+            font-weight: 400;
+            max-width: 850px;
+        }
+
+        .slide.dark-theme .slide-subtitle {
+            color: var(--cream);
+            opacity: 0.85;
+        }
+
+        .slide-body {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Slide Footer & Navigation */
+        .slide-footer {
+            position: absolute;
+            bottom: 2.5vh;
+            right: 4%;
+            font-size: 0.85rem;
+            color: var(--gray-light);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            z-index: 10;
+        }
+
+        .slide.dark-theme .slide-footer {
+            color: var(--accent);
+        }
+
+        .nav-controls {
+            position: absolute;
+            bottom: 2vh;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: rgba(43, 43, 43, 0.06);
+            backdrop-filter: blur(10px);
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            z-index: 20;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--green-dark);
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--green);
+            color: var(--white);
+        }
+
+        .slide-indicator {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--green-dark);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* SVG Icon styling */
+        .svg-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            color: currentColor;
+        }
+
+        .icon-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--green-dark);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Card Layouts */
+        .card-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            height: 100%;
+        }
+
+        .card-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .card-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .card-grid-6 {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+        }
+
+        .card-grid-8 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .glass-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--green-dark);
+            color: var(--white);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            align-self: flex-start;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            font-size: 0.82rem;
+            color: var(--gray);
+            line-height: 1.5;
+        }
+
+        /* Bullet List */
+        .feature-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.84rem;
+            color: var(--text);
+            line-height: 1.45;
+        }
+
+        .feature-bullet {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--green-light);
+            color: var(--green-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* Table Styling */
+        .table-container {
+            background: var(--white);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .clean-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .clean-table th {
+            background: var(--green-dark);
+            color: var(--white);
+            padding: 10px 16px;
+            font-weight: 600;
+            text-align: left;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+        }
+
+        .clean-table td {
+            padding: 9px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .clean-table tr:nth-child(even) {
+            background: var(--cream);
+        }
+
+        .clean-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .code-tag {
+            font-family: monospace;
+            font-size: 0.76rem;
+            background: var(--green-light);
+            color: var(--green-dark);
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
+        /* Title Slide Custom */
+        .hero-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 4.8rem;
+            font-weight: 700;
+            color: var(--green-dark);
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-tag {
+            font-size: 1rem;
+            letter-spacing: 0.35em;
+            color: var(--gray);
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        .hero-sub {
+            font-size: 1.15rem;
+            color: var(--gray);
+            margin-top: 22px;
+            line-height: 1.6;
+            max-width: 720px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="deck-container">
+
+    <!-- ════════════ SLIDE 1: TITLE ════════════ -->
+    <div class="slide active" id="slide-1">
+        <div class="top-accent"></div>
+        <div class="bg-circle" style="width: 280px; height: 280px; background: var(--border); top: -80px; right: -80px; opacity: 0.6;"></div>
+        <div class="bg-circle" style="width: 140px; height: 140px; background: var(--green-light); bottom: 40px; right: 180px; opacity: 0.7;"></div>
+
+        <div class="slide-body" style="justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"></path>
+                </svg>
+                <span class="hero-tag">AI SKIN INTELLIGENCE</span>
+            </div>
+            
+            <h1 class="hero-title">Skiné</h1>
+            <div class="title-divider" style="width: 120px; height: 4px; margin: 18px 0;"></div>
+            
+            <p class="hero-sub">
+                An intelligent, privacy-first cosmetic dermatology platform combining Computer Vision, Colorimetry, and Google Gemini Multimodal AI.
+            </p>
+
+            <div style="margin-top: 36px; display: flex; align-items: center; gap: 20px;">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--green-dark); background: var(--green-light); padding: 6px 16px; border-radius: 20px;">
+                    PRODUCTION URL
+                </span>
+                <span style="font-size: 0.9rem; color: var(--accent); font-weight: 500;">
+                    skin-analysis-ai-beta.vercel.app
+                </span>
+            </div>
+        </div>
+        <div class="slide-footer">01 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 2: PROBLEM ════════════ -->
+    <div class="slide" id="slide-2">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">The Problem</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Why millions struggle with skincare confusion and lack access to expert dermatological guidance.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-3">
+                <div class="glass-card">
+                    <div class="icon-circle" style="background: var(--green-dark); margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Expensive In-Person Visits</h3>
+                    <p class="card-desc">Dermatology consultations cost ₹2,000–₹5,000 per appointment and are completely inaccessible in rural and semi-urban communities.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="background: var(--green-dark); margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Confusing Active Ingredients</h3>
+                    <p class="card-desc">Consumers waste money buying viral active ingredients (AHA/BHA, retinol, serums) that compromise their specific skin barrier.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="background: var(--green-dark); margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Generic AI Chatbots Have No Eyes</h3>
+                    <p class="card-desc">Standard chatbots cannot visually inspect skin pixels, leading to vague, generic, and unpersonalized formulation advice.</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">02 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 3: SOLUTION ════════════ -->
+    <div class="slide" id="slide-3">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Our Solution</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Skiné AI combines hardware-accelerated Computer Vision with Google Gemini Multimodal AI for clinical-grade cosmetic skincare guidance.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-4">
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Instant Skin Scan</h3>
+                    <p class="card-desc">Take a selfie or upload a photo to extract 6 clinical biomarkers in seconds.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">AI Recommendation Engine</h3>
+                    <p class="card-desc">Gemini AI prescribes tailored active ingredients, routines, and real product matches.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Multimodal Chatbot</h3>
+                    <p class="card-desc">Consult an AI that already knows your scan data and can inspect pasted product labels.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Health Trajectory</h3>
+                    <p class="card-desc">Track skin health score trends over time with interactive Chart.js radar analytics.</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">03 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 4: WORKFLOW ════════════ -->
+    <div class="slide" id="slide-4">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Application Workflow</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">End-to-end data lifecycle from facial image capture to personalized diagnostic report.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-6">
+                <div class="glass-card" style="text-align: center; align-items: center;">
+                    <div class="icon-circle" style="width: 36px; height: 36px; border-radius: 50%; margin-bottom: 10px; font-weight: 700;">1</div>
+                    <h4 style="font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">Image Capture</h4>
+                    <p style="font-size: 0.74rem; color: var(--gray);">User uploads or takes selfie with webcam</p>
+                </div>
+
+                <div class="glass-card" style="text-align: center; align-items: center;">
+                    <div class="icon-circle" style="width: 36px; height: 36px; border-radius: 50%; margin-bottom: 10px; font-weight: 700;">2</div>
+                    <h4 style="font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">CV Pipeline</h4>
+                    <p style="font-size: 0.74rem; color: var(--gray);">OpenCV extracts 6 clinical biomarkers</p>
+                </div>
+
+                <div class="glass-card" style="text-align: center; align-items: center;">
+                    <div class="icon-circle" style="width: 36px; height: 36px; border-radius: 50%; margin-bottom: 10px; font-weight: 700;">3</div>
+                    <h4 style="font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">Gemini Vision</h4>
+                    <p style="font-size: 0.74rem; color: var(--gray);">Multimodal AI validates biometric scores</p>
+                </div>
+
+                <div class="glass-card" style="text-align: center; align-items: center;">
+                    <div class="icon-circle" style="width: 36px; height: 36px; border-radius: 50%; margin-bottom: 10px; font-weight: 700;">4</div>
+                    <h4 style="font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">AI Rx Engine</h4>
+                    <p style="font-size: 0.74rem; color: var(--gray);">Prescribes active ingredients & products</p>
+                </div>
+
+                <div class="glass-card" style="text-align: center; align-items: center;">
+                    <div class="icon-circle" style="width: 36px; height: 36px; border-radius: 50%; margin-bottom: 10px; font-weight: 700;">5</div>
+                    <h4 style="font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">Report Page</h4>
+                    <p style="font-size: 0.74rem; color: var(--gray);">Interactive dashboard with AM/PM routines</p>
+                </div>
+
+                <div class="glass-card" style="text-align: center; align-items: center;">
+                    <div class="icon-circle" style="width: 36px; height: 36px; border-radius: 50%; margin-bottom: 10px; font-weight: 700;">6</div>
+                    <h4 style="font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">AI Chatbot</h4>
+                    <p style="font-size: 0.74rem; color: var(--gray);">Ongoing consultation with stored context</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">04 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 5: CV PIPELINE ════════════ -->
+    <div class="slide" id="slide-5">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Computer Vision Pipeline</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">4-stage mathematical and colorimetric image processing pipeline in OpenCV.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-2">
+                <div class="glass-card">
+                    <span class="card-badge">Stage 1</span>
+                    <h3 class="card-title">Gray-World White Balance Color Constancy</h3>
+                    <p class="card-desc">Normalizes ambient room lighting (warm tungsten, cold LED) to standard D65 illumination so skin tone measurements are mathematically repeatable across different environments.</p>
+                </div>
+
+                <div class="glass-card">
+                    <span class="card-badge">Stage 2</span>
+                    <h3 class="card-title">YCrCb + HSV Multi-Space Skin Masking</h3>
+                    <p class="card-desc">Isolates living human facial tissue from clothing, background, and hair by combining chromaticity thresholds in YCrCb with hue/saturation bounds in HSV color space.</p>
+                </div>
+
+                <div class="glass-card">
+                    <span class="card-badge">Stage 3</span>
+                    <h3 class="card-title">Precise Facial ROI Extraction</h3>
+                    <p class="card-desc">Extracts Forehead & T-Zone (sebum detection), Inner Cheeks (redness and moisture barrier analysis), and Malar regions (texture variance and hyperpigmentation spotting).</p>
+                </div>
+
+                <div class="glass-card">
+                    <span class="card-badge">Stage 4</span>
+                    <h3 class="card-title">Biomarker Mathematical Scoring</h3>
+                    <p class="card-desc">Computes 6 clinical indices: Specular Glare (Oiliness), Laplacian Variance (Texture), Erythema Delta (Redness), Luminance Gradient (Dryness), Melanin Clusters (Pigmentation).</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">05 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 6: TECH STACK ════════════ -->
+    <div class="slide" id="slide-6">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Technology Stack</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Production-grade architecture built for speed, accuracy, and seamless edge delivery.</p>
+        </div>
+        <div class="slide-body">
+            <div class="table-container">
+                <table class="clean-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 22%;">Layer</th>
+                            <th style="width: 40%;">Technologies Used</th>
+                            <th style="width: 38%;">Why We Chose It</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Frontend UI</strong></td>
+                            <td>Flask Jinja2 · Bootstrap 5 · Custom CSS Design System</td>
+                            <td>Earthy modern aesthetic, responsive grid, zero framework bloat.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Backend API</strong></td>
+                            <td>Python 3 · Flask REST API · Werkzeug Security</td>
+                            <td>Native ecosystem for AI & Computer Vision libraries with fast routing.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Computer Vision</strong></td>
+                            <td>OpenCV (`cv2`) · NumPy Arrays</td>
+                            <td>Hardware-accelerated pixel operations and color space transformations.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Generative AI</strong></td>
+                            <td>Google Gemini 3.5 Flash / Flash-Lite</td>
+                            <td>Multimodal vision & fast JSON-structured clinical formulation generation.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Database Layer</strong></td>
+                            <td>PostgreSQL (Supabase) in Prod · SQLite3 Locally</td>
+                            <td>Adaptive connection layer with SSL connection pooling.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cloud Hosting</strong></td>
+                            <td>Vercel Serverless (`@vercel/python`) · GitHub CI/CD</td>
+                            <td>Automatic edge deployment on every `git push origin main`.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="slide-footer">06 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 7: EXTERNAL TOOLS ════════════ -->
+    <div class="slide" id="slide-7">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">External Tools & Where They're Used</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Detailed mapping of third-party APIs, libraries, and cloud services in the codebase.</p>
+        </div>
+        <div class="slide-body">
+            <div class="table-container">
+                <table class="clean-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Tool / Service</th>
+                            <th style="width: 38%;">Core Purpose</th>
+                            <th style="width: 37%;">Where Used in Codebase</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Google Gemini API</strong></td>
+                            <td>Multimodal vision analysis & dynamic recommendations</td>
+                            <td><span class="code-tag">skin_analysis.py</span> <span class="code-tag">recommendations.py</span> <span class="code-tag">app.py</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>OpenCV (cv2)</strong></td>
+                            <td>Face detection, color-space masking, image normalization</td>
+                            <td><span class="code-tag">models/skin_analysis.py</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>NumPy</strong></td>
+                            <td>Fast array math, Laplacian variance, pixel histogram delta</td>
+                            <td><span class="code-tag">models/skin_analysis.py</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Supabase PostgreSQL</strong></td>
+                            <td>Persistent cloud storage for users, scans, history, feedback</td>
+                            <td><span class="code-tag">db.py</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vercel Serverless</strong></td>
+                            <td>Global Edge hosting and automated continuous deployment</td>
+                            <td><span class="code-tag">vercel.json</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Daraz Nepal API Links</strong></td>
+                            <td>Direct regional e-commerce search hyperlinks for products</td>
+                            <td><span class="code-tag">models/recommendations.py</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chart.js</strong></td>
+                            <td>Interactive radar charts and longitudinal health score line graphs</td>
+                            <td><span class="code-tag">templates/result.html</span> <span class="code-tag">dashboard.html</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="slide-footer">07 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 8: HOME & SCANNER ════════════ -->
+    <div class="slide" id="slide-8">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Web App Pages — Home & Scanner</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">The user's gateway: welcoming landing page and real-time biometric camera capture.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-2">
+                <div class="glass-card">
+                    <span class="card-badge">Home Page (/index)</span>
+                    <h3 class="card-title">Earthy, Minimalist Landing Page</h3>
+                    <ul class="feature-list" style="margin-top: 10px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Adaptive CTA buttons: "Let's Start" vs "Start AI Scan" based on login status.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> 6-Biomarker sensor overview highlighting clinical capabilities.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Clean SVG vector line icons replacing all emojis for medical-grade aesthetics.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Brand palette with soft organic gradients and Cormorant Garamond typography.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card">
+                    <span class="card-badge">Scanner Page (/scanner)</span>
+                    <h3 class="card-title">Real-Time Facial Vision Capture</h3>
+                    <ul class="feature-list" style="margin-top: 10px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Live webcam feed with animated oval face-positioning guide.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Multi-angle face detection engine (supports tilted head or lying-down poses).</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Real-time AI Diagnostic Parameter sensor indicators.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Dual input mode: instant camera snapshot or direct photo upload.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">08 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 9: RESULT REPORT ════════════ -->
+    <div class="slide" id="slide-9">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Web App Pages — Skin Analysis Report</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Interactive clinical diagnostic report generated after every scan (/result).</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-8">
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 1</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Health Score & Badge</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">0–100% skin health index with condition classification badge.</p>
+                </div>
+
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 2</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Biomarker Radar</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">Interactive Chart.js radar chart mapping 6 diagnostic parameters.</p>
+                </div>
+
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 3</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Active Ingredients</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">AI-prescribed active formulations with clinical justification notes.</p>
+                </div>
+
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 4</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Product Cards</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">Real commercial products with hybrid photos and Daraz buy links.</p>
+                </div>
+
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 5</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">AM Routine</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">Step-by-step morning routine with interactive adherence check-offs.</p>
+                </div>
+
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 6</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">PM Routine</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">Step-by-step night repair regimen with active layering warnings.</p>
+                </div>
+
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 7</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Things to Avoid</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">Contraindicated ingredients and habits that exacerbate barrier damage.</p>
+                </div>
+
+                <div class="glass-card" style="padding: 14px;">
+                    <span class="card-badge" style="font-size: 0.65rem; padding: 2px 8px; margin-bottom: 6px;">Metric 8</span>
+                    <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Lifestyle Guidance</h4>
+                    <p style="font-size: 0.72rem; color: var(--gray);">Dietary, hydration, and UV exposure prevention advice.</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">09 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 10: DASHBOARD & HISTORY ════════════ -->
+    <div class="slide" id="slide-10">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Web App Pages — Dashboard & History</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Longitudinal analytics and full historical record of every diagnostic scan.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-2">
+                <div class="glass-card">
+                    <span class="card-badge">Dashboard (/dashboard)</span>
+                    <h3 class="card-title">Comprehensive Health Intelligence</h3>
+                    <ul class="feature-list" style="margin-top: 10px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> 4 Top Overview Cards: Last Scan Date, Total Scans, Skin Type, Health Score.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> 6 Skin Characteristic Badges (Oiliness, Hydration, Texture, Redness, etc.).</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Longitudinal Health Score Trend line chart tracking progress over time.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Daily Routine Adherence checklist with AM/PM step toggles.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card">
+                    <span class="card-badge">History (/history)</span>
+                    <h3 class="card-title">Chronological Scan Log</h3>
+                    <ul class="feature-list" style="margin-top: 10px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Complete chronological log of every facial scan performed by user.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Each card displays: Scan Date, Skin Type, Health Score badge.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> One-click navigation to reopen full diagnostic report for any past scan.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Backed by encrypted PostgreSQL / Supabase cloud database.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">10 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 11: CHATBOT & FEEDBACK ════════════ -->
+    <div class="slide" id="slide-11">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Web App Pages — AI Chatbot & Feedback</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Context-aware multimodal AI consultation and user feedback mechanism.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-2">
+                <div class="glass-card">
+                    <span class="card-badge">AI Assistant</span>
+                    <h3 class="card-title">Multimodal Skiné AI Chatbot</h3>
+                    <ul class="feature-list" style="margin-top: 10px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Automatically injects user's latest scan biomarkers into AI prompt.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Image paste support (`Ctrl + V`): analyzes cosmetics bottle ingredients.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Direct e-commerce links to Nepal stores (Daraz Nepal & Jeevee).</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Floating resizable & maximizable consultation panel on all pages.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card">
+                    <span class="card-badge">Community</span>
+                    <h3 class="card-title">Feedback & Reviews (/feedback)</h3>
+                    <ul class="feature-list" style="margin-top: 10px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> 5-star interactive rating component with category tagging.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Category selector: General Feedback, Feature Request, Bug Report.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Public review wall with user avatars and submission timestamps.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Admin dashboard (/admin) for review moderation.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">11 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 12: KEY FEATURES ════════════ -->
+    <div class="slide" id="slide-12">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Key Features Summary</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Core clinical and engineering innovations that distinguish Skiné AI.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-2">
+                <div class="glass-card">
+                    <span class="card-badge">Clinical Intelligence</span>
+                    <ul class="feature-list" style="margin-top: 12px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> 6-Biomarker analysis (Oiliness, Dryness, Texture, Redness, Pigmentation, Score).</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> AI-generated active ingredient recommendations with clinical justification notes.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Real product recommendations with direct Daraz Nepal store links.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Morning & Night routine prescriptions with active layering precautions.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Multimodal AI chatbot with cosmetic bottle ingredient OCR recognition.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card">
+                    <span class="card-badge">Engineering & Architecture</span>
+                    <ul class="feature-list" style="margin-top: 12px;">
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Multi-angle rotation-invariant face detection (tilted head / lying down).</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Gray-World color constancy algorithm for any lighting environment.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Dual-engine fallback: deterministic rule catalog if AI API is offline.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Hybrid image resolver: maps catalog photos or category studio visuals.</li>
+                        <li class="feature-item"><span class="feature-bullet"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Scalable serverless edge deployment with automatic GitHub CI/CD.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">12 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 13: SECURITY ════════════ -->
+    <div class="slide" id="slide-13">
+        <div class="top-accent"></div>
+        <div class="slide-header">
+            <h2 class="slide-title">Security & Privacy</h2>
+            <div class="title-divider"></div>
+            <p class="slide-subtitle">Industry-standard security practices protecting user identity, scan imagery, and API endpoints.</p>
+        </div>
+        <div class="slide-body">
+            <div class="card-grid-4">
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Password Security</h3>
+                    <p class="card-desc">PBKDF2 SHA-256 with 50,000 salt iterations. Passwords are never stored in plain text.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Session Protection</h3>
+                    <p class="card-desc">Encrypted HttpOnly cookies with SameSite=Lax policy to prevent XSS/CSRF token theft.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Photo Privacy</h3>
+                    <p class="card-desc">Images processed in secure memory for biomarker extraction — never shared or sold.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="icon-circle" style="margin-bottom: 14px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">API Rate Limiting</h3>
+                    <p class="card-desc">Rolling 24-hour quota of 350 chat messages per account to protect Gemini API budgets.</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer">13 / 14</div>
+    </div>
+
+    <!-- ════════════ SLIDE 14: THANK YOU ════════════ -->
+    <div class="slide dark-theme" id="slide-14">
+        <div class="bg-circle" style="width: 320px; height: 320px; background: rgba(255,255,255,0.05); top: -100px; right: -100px;"></div>
+        <div class="bg-circle" style="width: 220px; height: 220px; background: rgba(255,255,255,0.04); bottom: -60px; left: -60px;"></div>
+
+        <div class="slide-body" style="justify-content: center; padding-left: 2%;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"></path>
+                </svg>
+                <span style="font-size: 0.95rem; letter-spacing: 0.35em; color: var(--cream); opacity: 0.8; font-weight: 500; text-transform: uppercase;">
+                    AI SKIN INTELLIGENCE
+                </span>
+            </div>
+
+            <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 4.8rem; font-weight: 700; color: var(--white); line-height: 1;">
+                Skiné
+            </h1>
+            <div class="title-divider" style="background: var(--accent); width: 100px; height: 3px; margin: 18px 0;"></div>
+
+            <p style="font-size: 1.8rem; color: var(--cream); font-weight: 400; margin-top: 10px;">
+                Thank you for your time.
+            </p>
+
+            <div style="margin-top: 36px; display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 1rem; color: var(--accent); font-weight: 500;">
+                    🌐 skin-analysis-ai-beta.vercel.app
+                </span>
+                <span style="font-size: 0.95rem; color: var(--cream); opacity: 0.8;">
+                    📷 Instagram: @_skine05
+                </span>
+            </div>
+        </div>
+        <div class="slide-footer">14 / 14</div>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+        <button class="nav-btn" id="prev-btn" title="Previous Slide (Left Arrow)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <span class="slide-indicator" id="slide-indicator">1 / 14</span>
+        <button class="nav-btn" id="next-btn" title="Next Slide (Right Arrow or Space)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <button class="nav-btn" id="fullscreen-btn" title="Toggle Fullscreen (F)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+    </div>
+
+</div>
+
+<script>
+    let currentSlide = 1;
+    const totalSlides = 14;
+
+    const slides = document.querySelectorAll('.slide');
+    const indicator = document.getElementById('slide-indicator');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+    function goToSlide(n) {
+        if (n < 1) n = 1;
+        if (n > totalSlides) n = totalSlides;
+        
+        slides.forEach((s, idx) => {
+            s.classList.remove('active');
+            if (idx === n - 1) {
+                s.classList.add('active');
+            }
+        });
+        
+        currentSlide = n;
+        indicator.textContent = `${currentSlide} / ${totalSlides}`;
+    }
+
+    prevBtn.addEventListener('click', () => goToSlide(currentSlide - 1));
+    nextBtn.addEventListener('click', () => goToSlide(currentSlide + 1));
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+            e.preventDefault();
+            goToSlide(currentSlide + 1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            goToSlide(currentSlide - 1);
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            goToSlide(1);
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            goToSlide(totalSlides);
+        } else if (e.key.toLowerCase() === 'f') {
+            toggleFullscreen();
+        }
+    });
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {});
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+</script>
+
+</body>
+</html>
