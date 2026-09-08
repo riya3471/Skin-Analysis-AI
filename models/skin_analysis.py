@@ -13,61 +13,44 @@ from models.recommendations import get_recommendations
 
 def apply_gray_world_white_balance(bgr_image, skin_mask=None):
     """
-    Applies Gray-World color constancy to eliminate ambient color casts
-    (e.g., warm tungsten lighting or blue daylight casts) using skin or whole frame.
+    Applies gentle illumination normalization:
+    Normalizes lighting variation using adaptive luminance equalization in LAB space
+    while preserving physiological skin chrominance.
     """
-    img_float = bgr_image.astype(np.float32)
-    if skin_mask is not None and np.count_nonzero(skin_mask) > 100:
-        b_mean = np.mean(img_float[:, :, 0][skin_mask > 0])
-        g_mean = np.mean(img_float[:, :, 1][skin_mask > 0])
-        r_mean = np.mean(img_float[:, :, 2][skin_mask > 0])
-    else:
-        b_mean = np.mean(img_float[:, :, 0])
-        g_mean = np.mean(img_float[:, :, 1])
-        r_mean = np.mean(img_float[:, :, 2])
-
-    gray_target = (b_mean + g_mean + r_mean) / 3.0
-    if b_mean < 1e-3 or g_mean < 1e-3 or r_mean < 1e-3:
-        return bgr_image
-
-    kb = gray_target / b_mean
-    kg = gray_target / g_mean
-    kr = gray_target / r_mean
-
-    # Dampen extreme scaling factors to avoid over-amplification
-    kb = np.clip(kb, 0.65, 1.45)
-    kg = np.clip(kg, 0.65, 1.45)
-    kr = np.clip(kr, 0.65, 1.45)
-
-    img_float[:, :, 0] = np.clip(img_float[:, :, 0] * kb, 0, 255)
-    img_float[:, :, 1] = np.clip(img_float[:, :, 1] * kg, 0, 255)
-    img_float[:, :, 2] = np.clip(img_float[:, :, 2] * kr, 0, 255)
-
-    return img_float.astype(np.uint8)
+    lab = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
+    l_chan, a_chan, b_chan = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(8, 8))
+    l_norm = clahe.apply(l_chan)
+    return cv2.cvtColor(cv2.merge([l_norm, a_chan, b_chan]), cv2.COLOR_LAB2BGR)
 
 
 def get_skin_mask(bgr_image):
     """
-    Extracts a robust skin mask combining YCrCb and HSV color spaces.
-    Discards hair, background, eyes, nostrils, and clothing.
+    Extracts a robust skin mask combining universal YCrCb and HSV color spaces.
+    Accommodates diverse Fitzpatrick skin tones and varying ambient color temperatures.
     """
     ycrcb = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2YCrCb)
     mask_ycrcb = cv2.inRange(
         ycrcb,
-        np.array([0, 133, 77], dtype=np.uint8),
-        np.array([255, 175, 128], dtype=np.uint8)
+        np.array([0, 120, 68], dtype=np.uint8),
+        np.array([255, 185, 144], dtype=np.uint8)
     )
 
     hsv = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
-    mask_hsv = cv2.inRange(
+    mask_hsv1 = cv2.inRange(
         hsv,
-        np.array([0, 20, 40], dtype=np.uint8),
-        np.array([28, 240, 255], dtype=np.uint8)
+        np.array([0, 12, 35], dtype=np.uint8),
+        np.array([35, 255, 255], dtype=np.uint8)
     )
+    mask_hsv2 = cv2.inRange(
+        hsv,
+        np.array([168, 12, 35], dtype=np.uint8),
+        np.array([180, 255, 255], dtype=np.uint8)
+    )
+    mask_hsv = cv2.bitwise_or(mask_hsv1, mask_hsv2)
 
     combined = cv2.bitwise_and(mask_ycrcb, mask_hsv)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel, iterations=1)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel, iterations=1)
     return combined
 
@@ -293,83 +276,86 @@ def analyze_skin_image(image_path, output_dir=None):
                 y2 = int(max(0, min(h_img, (ymax / 1000.0) * h_img)))
                 x1 = int(max(0, min(w_img, (xmin / 1000.0) * w_img)))
                 x2 = int(max(0, min(w_img, (xmax / 1000.0) * w_img)))
-                if (x2 - x1) > 40 and (y2 - y1) > 40:
-                    face_box = (x1, y1, x2 - x1, y2 - y1)
+                bw = x2 - x1
+                bh = y2 - y1
+                # Enforce anatomical head proportion: height should not exceed 1.30x width
+                if bh > int(bw * 1.30):
+                    bh = int(bw * 1.30)
+                if bw > 40 and bh > 40:
+                    face_box = (x1, y1, bw, bh)
                     engine_used = "ai_vision"
             except Exception:
                 face_box = None
 
+    # Fallback: Multi-scale & Multi-rotation Haar cascades
     if face_box is None:
-        print("Skin Analysis AI: AI Vision not available or face box unparsed. Engaging OpenCV Computer Vision fallback.")
+        def detect_face_multiscale(gray_img, w_i, h_i):
+            cascade_names = [
+                "haarcascade_frontalface_default.xml",
+                "haarcascade_frontalface_alt2.xml",
+                "haarcascade_profileface.xml"
+            ]
+            cascades = []
+            for cf in cascade_names:
+                try:
+                    cf_path = cf
+                    if hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
+                        cf_path = os.path.join(cv2.data.haarcascades, cf)
+                    if os.path.exists(cf_path):
+                        c = cv2.CascadeClassifier(cf_path)
+                        if not c.empty():
+                            cascades.append(c)
+                    elif hasattr(cv2, "CascadeClassifier"):
+                        c = cv2.CascadeClassifier(cf)
+                        if not c.empty():
+                            cascades.append(c)
+                except Exception:
+                    pass
 
-    # Helper: Multi-scale & Multi-rotation Haar Detection
-    def detect_face_multiscale(gray_img, w_i, h_i):
-        cascade_names = [
-            "haarcascade_frontalface_default.xml",
-            "haarcascade_frontalface_alt2.xml",
-            "haarcascade_profileface.xml"
-        ]
-        cascades = []
-        for cf in cascade_names:
-            try:
-                cf_path = cf
-                if hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
-                    cf_path = os.path.join(cv2.data.haarcascades, cf)
-                if os.path.exists(cf_path):
-                    c = cv2.CascadeClassifier(cf_path)
-                    if not c.empty():
-                        cascades.append(c)
-                elif hasattr(cv2, "CascadeClassifier"):
-                    c = cv2.CascadeClassifier(cf)
-                    if not c.empty():
-                        cascades.append(c)
-            except Exception:
-                pass
+            if not cascades:
+                return None
 
-        if not cascades:
-            return None
-
-        for c in cascades:
-            try:
-                faces = c.detectMultiScale(
-                    gray_img,
-                    scaleFactor=1.08,
-                    minNeighbors=3,
-                    minSize=(int(w_i * 0.12), int(h_i * 0.12))
-                )
-                if len(faces) > 0:
-                    return max(faces, key=lambda b: b[2] * b[3])
-            except Exception:
-                pass
-
-        center_pt = (w_i // 2, h_i // 2)
-        for angle in [15, -15, 25, -25, 35, -35, 45, -45]:
-            try:
-                M = cv2.getRotationMatrix2D(center_pt, angle, 1.0)
-                rotated_gray = cv2.warpAffine(gray_img, M, (w_i, h_i), flags=cv2.INTER_LINEAR)
-                for c in cascades:
+            for c in cascades:
+                try:
                     faces = c.detectMultiScale(
-                        rotated_gray,
+                        gray_img,
                         scaleFactor=1.08,
                         minNeighbors=3,
                         minSize=(int(w_i * 0.12), int(h_i * 0.12))
                     )
                     if len(faces) > 0:
-                        bx, by, bw, bh = max(faces, key=lambda b: b[2] * b[3])
-                        box_center_rot = np.array([bx + bw / 2.0, by + bh / 2.0, 1.0])
-                        M_inv = cv2.getRotationMatrix2D(center_pt, -angle, 1.0)
-                        orig_center = M_inv.dot(box_center_rot)
-                        orig_x = int(max(0, orig_center[0] - bw / 2.0))
-                        orig_y = int(max(0, orig_center[1] - bh / 2.0))
-                        orig_w = int(min(w_i - orig_x, bw))
-                        orig_h = int(min(h_i - orig_y, bh))
-                        if orig_w > 30 and orig_h > 30:
-                            return (orig_x, orig_y, orig_w, orig_h)
-            except Exception:
-                pass
-        return None
+                        return max(faces, key=lambda b: b[2] * b[3])
+                except Exception:
+                    pass
 
-    face_box = detect_face_multiscale(gray_full, w_img, h_img)
+            center_pt = (w_i // 2, h_i // 2)
+            for angle in [15, -15, 25, -25, 35, -35, 45, -45]:
+                try:
+                    M = cv2.getRotationMatrix2D(center_pt, angle, 1.0)
+                    rotated_gray = cv2.warpAffine(gray_img, M, (w_i, h_i), flags=cv2.INTER_LINEAR)
+                    for c in cascades:
+                        faces = c.detectMultiScale(
+                            rotated_gray,
+                            scaleFactor=1.08,
+                            minNeighbors=3,
+                            minSize=(int(w_i * 0.12), int(h_i * 0.12))
+                        )
+                        if len(faces) > 0:
+                            bx, by, bw, bh = max(faces, key=lambda b: b[2] * b[3])
+                            box_center_rot = np.array([bx + bw / 2.0, by + bh / 2.0, 1.0])
+                            M_inv = cv2.getRotationMatrix2D(center_pt, -angle, 1.0)
+                            orig_center = M_inv.dot(box_center_rot)
+                            orig_x = int(max(0, orig_center[0] - bw / 2.0))
+                            orig_y = int(max(0, orig_center[1] - bh / 2.0))
+                            orig_w = int(min(w_i - orig_x, bw))
+                            orig_h = int(min(h_i - orig_y, bh))
+                            if orig_w > 30 and orig_h > 30:
+                                return (orig_x, orig_y, orig_w, orig_h)
+                except Exception:
+                    pass
+            return None
+
+        face_box = detect_face_multiscale(gray_full, w_img, h_img)
 
     # 3. Robust Skin Contour Segmentation Fallback
     full_skin_mask = get_skin_mask(image)
@@ -377,7 +363,7 @@ def analyze_skin_image(image_path, output_dir=None):
     total_img_pixels = max(1, h_img * w_img)
     skin_ratio_full = float(skin_pixels_total) / float(total_img_pixels)
 
-    if face_box is None and skin_ratio_full >= 0.03:
+    if face_box is None and skin_ratio_full >= 0.02:
         try:
             upper_mask = full_skin_mask.copy()
             upper_mask[int(h_img * 0.85):, :] = 0
@@ -386,7 +372,7 @@ def analyze_skin_image(image_path, output_dir=None):
             valid_candidates = []
             for c in contours:
                 area = cv2.contourArea(c)
-                if area > (h_img * w_img * 0.025):
+                if area > (h_img * w_img * 0.02):
                     bx, by, bw, bh = cv2.boundingRect(c)
                     aspect = bh / max(1, bw)
                     if 0.4 <= aspect <= 3.0:
@@ -394,8 +380,8 @@ def analyze_skin_image(image_path, output_dir=None):
             if valid_candidates:
                 valid_candidates.sort(key=lambda x: x[4], reverse=True)
                 best_bx, best_by, best_bw, best_bh, _ = valid_candidates[0]
-                if best_bh > best_bw * 1.35:
-                    best_bh = int(best_bw * 1.35)
+                if best_bh > best_bw * 1.30:
+                    best_bh = int(best_bw * 1.30)
                 face_box = (best_bx, best_by, best_bw, min(h_img - best_by, best_bh))
             else:
                 M = cv2.moments(upper_mask)
@@ -428,20 +414,20 @@ def analyze_skin_image(image_path, output_dir=None):
 
     # If skin tone mask is sparse due to low light or webcam color balance,
     # supply an adaptive central elliptical face mask so CV fallback metrics proceed smoothly
-    if skin_ratio < 0.01 and skin_ratio_full < 0.015:
+    if skin_ratio < 0.005 and skin_ratio_full < 0.008:
         return {
             "success": False,
             "message": "No skin tones detected in the face frame. Please ensure your face is clearly visible."
         }
 
-    if skin_ratio < 0.03:
+    if skin_ratio < 0.05:
         face_skin_mask = np.zeros((face_h, face_w), dtype=np.uint8)
         cv2.ellipse(face_skin_mask, (face_w // 2, face_h // 2), (int(face_w * 0.38), int(face_h * 0.45)), 0, 0, 360, 255, -1)
 
     # =====================================================
     # COLOR CONSTANCY & ILLUMINATION NORMALIZATION
     # =====================================================
-    # Normalize color temperature across the face to eliminate room lighting cast
+    # Normalize luminance across the face in LAB space to eliminate ambient lighting variance
     face_normalized = apply_gray_world_white_balance(face_raw, face_skin_mask)
 
     # Save visual crop images for frontend UI display
@@ -449,28 +435,23 @@ def analyze_skin_image(image_path, output_dir=None):
     cv2.imwrite(face_crop_path, face_raw)
 
     # =====================================================
-    # PRECISE INNER-MALAR & T-ZONE REGIONS (Avoids Hair & Edges)
+    # PRECISE INNER-MALAR & T-ZONE REGIONS
     # =====================================================
-    # Forehead: Central upper region (avoids hairline and eyebrows)
-    fh_y1, fh_y2 = int(face_h * 0.10), int(face_h * 0.28)
+    # Forehead: Central upper region
+    fh_y1, fh_y2 = int(face_h * 0.12), int(face_h * 0.30)
     fh_x1, fh_x2 = int(face_w * 0.28), int(face_w * 0.72)
 
-    # Left Malar Cheek (avoids hair, ears, nose, and eyes)
-    lc_y1, lc_y2 = int(face_h * 0.44), int(face_h * 0.70)
-    lc_x1, lc_x2 = int(face_w * 0.16), int(face_w * 0.40)
+    # Left Malar Cheek
+    lc_y1, lc_y2 = int(face_h * 0.42), int(face_h * 0.68)
+    lc_x1, lc_x2 = int(face_w * 0.18), int(face_w * 0.42)
 
-    # Right Malar Cheek (avoids hair, ears, nose, and eyes)
-    rc_y1, rc_y2 = int(face_h * 0.44), int(face_h * 0.70)
-    rc_x1, rc_x2 = int(face_w * 0.60), int(face_w * 0.84)
-
-    # Neutral Baseline Region (lower mid-face / chin boundary)
-    base_y1, base_y2 = int(face_h * 0.74), int(face_h * 0.88)
-    base_x1, base_x2 = int(face_w * 0.35), int(face_w * 0.65)
+    # Right Malar Cheek
+    rc_y1, rc_y2 = int(face_h * 0.42), int(face_h * 0.68)
+    rc_x1, rc_x2 = int(face_w * 0.58), int(face_w * 0.82)
 
     forehead = face_normalized[fh_y1:fh_y2, fh_x1:fh_x2]
     left_cheek = face_normalized[lc_y1:lc_y2, lc_x1:lc_x2]
     right_cheek = face_normalized[rc_y1:rc_y2, rc_x1:rc_x2]
-    baseline_region = face_normalized[base_y1:base_y2, base_x1:base_x2]
 
     # Save region crops for frontend inspection tabs
     forehead_crop_path = os.path.join(output_dir, "forehead.jpg")
@@ -481,11 +462,10 @@ def analyze_skin_image(image_path, output_dir=None):
     cv2.imwrite(left_cheek_crop_path, face_raw[lc_y1:lc_y2, lc_x1:lc_x2])
     cv2.imwrite(right_cheek_crop_path, face_raw[rc_y1:rc_y2, rc_x1:rc_x2])
 
-    # Extract skin masks for each region
+    # Extract skin masks for regions
     fh_mask = get_skin_mask(forehead)
     lc_mask = get_skin_mask(left_cheek)
     rc_mask = get_skin_mask(right_cheek)
-    base_mask = get_skin_mask(baseline_region)
 
     # =====================================================
     # 4. ILLUMINATION-INVARIANT BRIGHTNESS & OILINESS
@@ -504,26 +484,13 @@ def analyze_skin_image(image_path, output_dir=None):
     rc_brightness = float(np.mean(rc_val[rc_mask > 0])) if np.count_nonzero(rc_mask) > 10 else float(np.mean(rc_val))
     cheek_brightness = (lc_brightness + rc_brightness) / 2.0
     brightness_difference = forehead_brightness - cheek_brightness
-
     forehead_saturation = float(np.mean(fh_sat[fh_mask > 0])) if np.count_nonzero(fh_mask) > 10 else float(np.mean(fh_sat))
 
-    # Specular shine detection: Localized high-intensity with desaturation relative to region mean
-    p85_bright = np.percentile(fh_val[fh_mask > 0] if np.count_nonzero(fh_mask) > 10 else fh_val, 85)
-    specular_thresh = max(195.0, float(p85_bright))
-    shiny_mask = (fh_val >= specular_thresh) & (fh_sat < 70.0)
-    if np.count_nonzero(fh_mask) > 10:
-        shiny_mask = shiny_mask & (fh_mask > 0)
-        shiny_pixels = np.count_nonzero(shiny_mask)
-        total_valid = np.count_nonzero(fh_mask)
-    else:
-        shiny_pixels = np.count_nonzero(shiny_mask)
-        total_valid = max(1, shiny_mask.size)
-
-    shiny_percentage = (shiny_pixels / float(total_valid)) * 100.0
-
-    # Calibrated continuous oiliness score (0-100)
-    oiliness_raw = (shiny_percentage * 3.2) + max(0.0, brightness_difference * 0.4)
-    oiliness_score = float(np.clip(oiliness_raw, 0.0, 100.0))
+    # Specular shine: physical reflection glint (high intensity + low saturation in forehead)
+    v_p85 = np.percentile(fh_val, 85)
+    specular_pixels = np.count_nonzero((fh_val >= max(195.0, float(v_p85))) & (fh_sat < 65.0))
+    shiny_percentage = (specular_pixels / float(max(1, fh_val.size))) * 100.0
+    oiliness_score = float(np.clip(shiny_percentage * 2.5, 0.0, 100.0))
 
     if oiliness_score < 25.0:
         oiliness_level = "Low"
@@ -537,30 +504,23 @@ def analyze_skin_image(image_path, output_dir=None):
     # =====================================================
     def analyze_texture_robust(bgr_region, mask):
         gray = cv2.cvtColor(bgr_region, cv2.COLOR_BGR2GRAY)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(6, 6))
-        enhanced = clahe.apply(gray)
-
-        # Morphological Top-Hat and Black-Hat to isolate pores/micro-relief without camera noise
-        kernel_pore = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        top_hat = cv2.morphologyEx(enhanced, cv2.MORPH_TOPHAT, kernel_pore)
-        black_hat = cv2.morphologyEx(enhanced, cv2.MORPH_BLACKHAT, kernel_pore)
+        k_pore = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        top_hat = cv2.morphologyEx(gray, cv2.MORPH_TOPHAT, k_pore)
+        black_hat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, k_pore)
         morph_relief = cv2.add(top_hat, black_hat)
-
         if np.count_nonzero(mask) > 20:
             valid_relief = morph_relief[mask > 0]
-            texture_metric = float(np.std(valid_relief) * 2.8 + np.mean(valid_relief) * 1.5)
         else:
-            texture_metric = float(np.std(morph_relief) * 2.8 + np.mean(morph_relief) * 1.5)
-        return texture_metric
+            valid_relief = morph_relief
+        return float(np.std(valid_relief) * 3.5)
 
     left_texture = analyze_texture_robust(left_cheek, lc_mask)
     right_texture = analyze_texture_robust(right_cheek, rc_mask)
-    texture_score_raw = (left_texture + right_texture) / 2.0
-    texture_score = float(np.clip(texture_score_raw * 2.2, 0.0, 100.0))
+    texture_score = float(np.clip((left_texture + right_texture) / 2.0, 0.0, 100.0))
 
-    if texture_score < 30.0:
+    if texture_score < 20.0:
         texture_level = "Smooth"
-    elif texture_score < 60.0:
+    elif texture_score < 50.0:
         texture_level = "Medium Detail"
     else:
         texture_level = "High Detail"
@@ -568,44 +528,22 @@ def analyze_skin_image(image_path, output_dir=None):
     # =====================================================
     # 6. RELATIVE SKIN REDNESS / ERYTHEMA ANALYSIS
     # =====================================================
-    # Convert to LAB. The 'a' channel measures green (-128) to red (+127).
-    # Measure cheek redness relative to user's individual baseline skin tone.
-    def get_lab_skin_stats(bgr_region, mask):
-        lab = cv2.cvtColor(bgr_region, cv2.COLOR_BGR2LAB)
-        l_chan = lab[:, :, 0].astype(np.float32)
-        a_chan = lab[:, :, 1].astype(np.float32)
-        if np.count_nonzero(mask) > 20:
-            valid_l = l_chan[mask > 0]
-            valid_a = a_chan[mask > 0]
-        else:
-            valid_l = l_chan.flatten()
-            valid_a = a_chan.flatten()
-        return np.mean(valid_l), np.mean(valid_a), np.std(valid_l), np.std(valid_a)
+    # Measure cheek redness relative to forehead (neutral dermatological reference) in LAB color space
+    lab_lc = cv2.cvtColor(left_cheek, cv2.COLOR_BGR2LAB)
+    lab_rc = cv2.cvtColor(right_cheek, cv2.COLOR_BGR2LAB)
+    lab_fh = cv2.cvtColor(forehead, cv2.COLOR_BGR2LAB)
 
-    base_l, base_a, _, _ = get_lab_skin_stats(baseline_region, base_mask)
-    lc_l, lc_a, lc_l_std, _ = get_lab_skin_stats(left_cheek, lc_mask)
-    rc_l, rc_a, rc_l_std, _ = get_lab_skin_stats(right_cheek, rc_mask)
+    ref_a = float(np.median(lab_fh[:, :, 1]))
+    cheek_a = (float(np.mean(lab_lc[:, :, 1])) + float(np.mean(lab_rc[:, :, 1]))) / 2.0
+    left_redness_delta = max(0.0, float(np.mean(lab_lc[:, :, 1])) - ref_a)
+    right_redness_delta = max(0.0, float(np.mean(lab_rc[:, :, 1])) - ref_a)
+    avg_redness_delta = max(0.0, cheek_a - ref_a)
 
-    # Relative delta a* (cheek erythema relative to baseline)
-    left_redness_delta = max(0.0, float(lc_a - base_a))
-    right_redness_delta = max(0.0, float(rc_a - base_a))
-    avg_redness_delta = (left_redness_delta + right_redness_delta) / 2.0
+    redness_score = float(np.clip(avg_redness_delta * 4.0, 0.0, 100.0))
 
-    # Red pixel percentage where a* exceeds baseline + 6.0
-    lab_lc = cv2.cvtColor(left_cheek, cv2.COLOR_BGR2LAB)[:, :, 1].astype(np.float32)
-    lab_rc = cv2.cvtColor(right_cheek, cv2.COLOR_BGR2LAB)[:, :, 1].astype(np.float32)
-    lc_red_mask = (lab_lc > (base_a + 5.0)) & (lc_mask > 0 if np.count_nonzero(lc_mask) > 10 else True)
-    rc_red_mask = (lab_rc > (base_a + 5.0)) & (rc_mask > 0 if np.count_nonzero(rc_mask) > 10 else True)
-
-    red_ratio_l = (np.count_nonzero(lc_red_mask) / float(max(1, np.count_nonzero(lc_mask)))) * 100.0
-    red_ratio_r = (np.count_nonzero(rc_red_mask) / float(max(1, np.count_nonzero(rc_mask)))) * 100.0
-    redness_percentage = (red_ratio_l + red_ratio_r) / 2.0
-
-    redness_score = float(np.clip((avg_redness_delta * 7.5) + (redness_percentage * 0.45), 0.0, 100.0))
-
-    if redness_score < 28.0:
+    if redness_score < 20.0:
         redness_level = "Low"
-    elif redness_score < 58.0:
+    elif redness_score < 45.0:
         redness_level = "Moderate"
     else:
         redness_level = "High"
@@ -613,34 +551,21 @@ def analyze_skin_image(image_path, output_dir=None):
     # =====================================================
     # 7. RELATIVE PIGMENTATION & TONE UNEVENNESS
     # =====================================================
-    # Local dark spots: areas significantly darker than local average lightness L*
-    def calculate_pigmentation_robust(bgr_region, mask):
-        lab = cv2.cvtColor(bgr_region, cv2.COLOR_BGR2LAB)
-        lightness = lab[:, :, 0].astype(np.float32)
-        local_avg = cv2.GaussianBlur(lightness, (15, 15), 0)
-        darker_diff = np.maximum(0.0, local_avg - lightness)
+    l_lc = lab_lc[:, :, 0].astype(np.float32)
+    l_rc = lab_rc[:, :, 0].astype(np.float32)
+    blur_l = cv2.GaussianBlur(l_lc, (15, 15), 0)
+    dark_diff_l = np.maximum(0.0, blur_l - l_lc)
+    blur_r = cv2.GaussianBlur(l_rc, (15, 15), 0)
+    dark_diff_r = np.maximum(0.0, blur_r - l_rc)
 
-        # Threshold for true hyperpigmented macules
-        dark_mask = (darker_diff > 8.0)
-        if np.count_nonzero(mask) > 20:
-            dark_mask = dark_mask & (mask > 0)
-            dark_pct = (np.count_nonzero(dark_mask) / float(np.count_nonzero(mask))) * 100.0
-            tone_var = float(np.std(darker_diff[mask > 0]))
-        else:
-            dark_pct = (np.count_nonzero(dark_mask) / float(max(1, dark_mask.size))) * 100.0
-            tone_var = float(np.std(darker_diff))
-        return dark_pct, tone_var
+    tone_variation = (float(np.std(dark_diff_l)) + float(np.std(dark_diff_r))) / 2.0
+    dark_mean = (float(np.mean(dark_diff_l)) + float(np.mean(dark_diff_r))) / 2.0
+    pigmentation_score = float(np.clip(tone_variation * 4.0 + dark_mean * 1.5, 0.0, 100.0))
+    pigmentation_percentage = min(100.0, dark_mean * 8.0)
 
-    left_dark_pct, left_tone_var = calculate_pigmentation_robust(left_cheek, lc_mask)
-    right_dark_pct, right_tone_var = calculate_pigmentation_robust(right_cheek, rc_mask)
-
-    pigmentation_percentage = (left_dark_pct + right_dark_pct) / 2.0
-    tone_variation = (left_tone_var + right_tone_var) / 2.0
-    pigmentation_score = float(np.clip((pigmentation_percentage * 2.4) + (tone_variation * 4.5), 0.0, 100.0))
-
-    if pigmentation_score < 28.0:
+    if pigmentation_score < 22.0:
         pigmentation_level = "Low"
-    elif pigmentation_score < 58.0:
+    elif pigmentation_score < 48.0:
         pigmentation_level = "Moderate"
     else:
         pigmentation_level = "High"
@@ -648,13 +573,11 @@ def analyze_skin_image(image_path, output_dir=None):
     # =====================================================
     # 8. DRYNESS ANALYSIS
     # =====================================================
-    # Dryness correlates with lack of hydration/shine in cheeks combined with micro-flaking relief
-    cheek_shine_deficit = max(0.0, 100.0 - (oiliness_score * 1.6))
-    dryness_score = float(np.clip((texture_score * 0.4) + (cheek_shine_deficit * 0.35), 0.0, 100.0))
+    dryness_score = float(np.clip((texture_score * 0.4) + (max(0.0, 50.0 - oiliness_score) * 0.5), 0.0, 100.0))
 
-    if dryness_score < 30.0:
+    if dryness_score < 25.0:
         dryness_level = "Low"
-    elif dryness_score < 60.0:
+    elif dryness_score < 50.0:
         dryness_level = "Moderate"
     else:
         dryness_level = "High"
@@ -662,11 +585,11 @@ def analyze_skin_image(image_path, output_dir=None):
     # =====================================================
     # 9. ROBUST CONTINUOUS SKIN TYPE CLASSIFICATION
     # =====================================================
-    if oiliness_score >= 50.0 and dryness_score < 35.0:
+    if oiliness_score >= 45.0 and dryness_score < 30.0:
         skin_type = "Oily"
-    elif dryness_score >= 50.0 and oiliness_score < 35.0:
+    elif dryness_score >= 40.0 and oiliness_score < 25.0:
         skin_type = "Dry"
-    elif (oiliness_score >= 35.0 and dryness_score >= 35.0) or (brightness_difference > 18.0 and oiliness_score > 30.0):
+    elif (oiliness_score >= 30.0 and dryness_score >= 25.0) or (brightness_difference > 15.0 and oiliness_score > 25.0):
         skin_type = "Combination"
     else:
         skin_type = "Normal"
@@ -674,12 +597,12 @@ def analyze_skin_image(image_path, output_dir=None):
     # =====================================================
     # 10. CONTINUOUS SCIENTIFIC BIOMETRIC HEALTH SCORING
     # =====================================================
-    # Deductions are continuously proportional to real measured pixel values (no hardcoding or discrete jumps)
-    oil_deduction = max(0.0, (oiliness_score - 22.0) * 0.16) if oiliness_score > 22.0 else 0.0
-    dry_deduction = max(0.0, (dryness_score - 22.0) * 0.16) if dryness_score > 22.0 else 0.0
-    red_deduction = max(0.0, (redness_score - 18.0) * 0.22) if redness_score > 18.0 else 0.0
-    pig_deduction = max(0.0, (pigmentation_score - 18.0) * 0.18) if pigmentation_score > 18.0 else 0.0
-    tex_deduction = max(0.0, (texture_score - 22.0) * 0.14) if texture_score > 22.0 else 0.0
+    # Deductions are continuously proportional to real measured pixel values
+    oil_deduction = max(0.0, (oiliness_score - 20.0) * 0.14) if oiliness_score > 20.0 else 0.0
+    dry_deduction = max(0.0, (dryness_score - 25.0) * 0.14) if dryness_score > 25.0 else 0.0
+    red_deduction = max(0.0, (redness_score - 15.0) * 0.18) if redness_score > 15.0 else 0.0
+    pig_deduction = max(0.0, (pigmentation_score - 15.0) * 0.15) if pigmentation_score > 15.0 else 0.0
+    tex_deduction = max(0.0, (texture_score - 20.0) * 0.12) if texture_score > 20.0 else 0.0
 
     total_deductions = oil_deduction + dry_deduction + red_deduction + pig_deduction + tex_deduction
     overall_score = float(max(50.0, min(98.5, round(100.0 - total_deductions, 1))))
