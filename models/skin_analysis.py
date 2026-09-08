@@ -81,13 +81,12 @@ def analyze_with_gemini_vision(image_path):
     Uses Google Gemini Vision API via direct REST endpoint if GEMINI_API_KEY is configured.
     Provides context-aware dermatological biomarker assessment.
     """
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        try:
-            api_key = base64.b64decode("QVEuQWI4Uk42TG5rYlNoU2JDa3BDVjlyX2xtRGJVZEUwUjRvYzZXN0FPQ0I3TVA0V0o4WVE=").decode("utf-8").strip()
-        except Exception:
-            api_key = ""
-    if not api_key:
+    if not openrouter_key and api_key.startswith("sk-or-"):
+        openrouter_key = api_key
+
+    if not openrouter_key and not api_key:
         return None
 
     try:
@@ -115,71 +114,113 @@ def analyze_with_gemini_vision(image_path):
             "}"
         )
 
-        models_to_try = [
-            "models/gemini-3.5-flash-lite",
-            "models/gemini-2.5-flash",
-            "models/gemini-2.0-flash",
-            "models/gemini-1.5-flash",
-            "models/gemini-3.5-flash",
-        ]
-
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": prompt},
-                        {
-                            "inline_data": {
-                                "mime_type": "image/jpeg",
-                                "data": base64_data
+        # 1. Primary: OpenRouter AI Vision (Gemini 3.7 Flash)
+        if openrouter_key:
+            or_models = [
+                "google/gemini-3.7-flash",
+                "google/gemini-3.5-flash-lite",
+                "google/gemini-3.6-flash",
+                "meta-llama/llama-3.2-11b-vision-instruct:free",
+            ]
+            for model_name in or_models:
+                try:
+                    payload = {
+                        "model": model_name,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_data}"}}
+                                ]
                             }
-                        }
-                    ]
-                }
-            ],
-            "generationConfig": {
-                "response_mime_type": "application/json",
-                "temperature": 0.2
-            }
-        }
-
-        json_bytes = json.dumps(payload).encode("utf-8")
-
-        for model_name in models_to_try:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-                req = urllib.request.Request(
-                    url,
-                    data=json_bytes,
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-goog-api-key": api_key
+                        ],
+                        "response_format": {"type": "json_object"},
+                        "max_tokens": 2500,
+                        "temperature": 0.2
                     }
-                )
+                    req = urllib.request.Request(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {openrouter_key}",
+                            "HTTP-Referer": "https://skinai.com",
+                            "X-Title": "Skin Analysis AI"
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=25) as response:
+                        resp_body = json.loads(response.read().decode("utf-8"))
+                        candidate_text = resp_body["choices"][0]["message"]["content"].strip()
+                        if candidate_text.startswith("```"):
+                            candidate_text = candidate_text.split("\n", 1)[1]
+                            if candidate_text.endswith("```"):
+                                candidate_text = candidate_text.rsplit("```", 1)[0]
+                            candidate_text = candidate_text.strip()
+                        ai_data = json.loads(candidate_text)
+                        print(f"Skin Analysis AI: Successfully received multimodal assessment from OpenRouter ({model_name}).")
+                        return ai_data
+                except Exception as ex:
+                    print(f"OpenRouter Vision model {model_name} note: {ex}")
+                    continue
 
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    resp_body = json.loads(response.read().decode("utf-8"))
-                    candidate_text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    # Strip any markdown code fences if model returned them
-                    if candidate_text.startswith("```"):
-                        candidate_text = candidate_text.split("\n", 1)[1]
-                        if candidate_text.endswith("```"):
-                            candidate_text = candidate_text.rsplit("```", 1)[0]
-                        candidate_text = candidate_text.strip()
-                    gemini_data = json.loads(candidate_text)
-                    print(f"Skin Analysis AI: Successfully received multimodal assessment from {model_name}.")
-                    return gemini_data
-            except urllib.error.HTTPError as he:
-                print(f"Gemini API model {model_name} HTTP {he.code}: {he.reason}")
-                continue
-            except Exception as ex:
-                print(f"Gemini API model {model_name} attempt note: {ex}")
-                continue
+        # 2. Secondary: Direct Google Gemini REST API (if non-OpenRouter key configured)
+        if api_key and not api_key.startswith("sk-or-"):
+            models_to_try = [
+                "models/gemini-3.5-flash-lite",
+                "models/gemini-3.6-flash",
+                "models/gemini-flash-latest",
+            ]
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": base64_data
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "response_mime_type": "application/json",
+                    "temperature": 0.2
+                }
+            }
+            json_bytes = json.dumps(payload).encode("utf-8")
+            for model_name in models_to_try:
+                try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
+                    req = urllib.request.Request(
+                        url,
+                        data=json_bytes,
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-goog-api-key": api_key
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=10) as response:
+                        resp_body = json.loads(response.read().decode("utf-8"))
+                        candidate_text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        if candidate_text.startswith("```"):
+                            candidate_text = candidate_text.split("\n", 1)[1]
+                            if candidate_text.endswith("```"):
+                                candidate_text = candidate_text.rsplit("```", 1)[0]
+                            candidate_text = candidate_text.strip()
+                        gemini_data = json.loads(candidate_text)
+                        print(f"Skin Analysis AI: Successfully received multimodal assessment from {model_name}.")
+                        return gemini_data
+                except Exception as ex:
+                    print(f"Gemini API model {model_name} note: {ex}")
+                    continue
 
         return None
 
     except Exception as e:
-        print(f"Gemini Vision API Note: {e}. Gracefully continuing with enhanced CV pipeline.")
+        print(f"AI Vision API Note: {e}. Gracefully continuing with enhanced CV pipeline.")
         return None
 
 

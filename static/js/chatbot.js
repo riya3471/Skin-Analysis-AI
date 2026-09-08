@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'text/event-stream, application/json'
                 },
                 body: JSON.stringify({
                     message: text,
@@ -268,30 +268,114 @@ document.addEventListener('DOMContentLoaded', () => {
                     context: {
                         skin_type: skinType,
                         overall_score: parseFloat(score) || 90.0
-                    }
+                    },
+                    stream: true
                 })
             });
-
-            removeTypingIndicator();
 
             if (res.status === 401) {
                 window.location.href = '/login';
                 return;
             }
 
-            const data = await res.json();
-            if (data.success) {
+            if (res.status === 429) {
+                removeTypingIndicator();
+                const errData = await res.json().catch(() => ({}));
                 messages.push({
                     role: 'model',
-                    content: data.reply,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                });
-            } else {
-                messages.push({
-                    role: 'model',
-                    content: data.message || 'The AI service is temporarily unavailable. Please retry your inquiry.',
+                    content: errData.message || 'Daily limit reached (350 messages / 24 hrs). Your quota will reset automatically.',
                     time: 'Just now'
                 });
+                renderMessages();
+                return;
+            }
+
+            if (!res.ok) {
+                removeTypingIndicator();
+                const errData = await res.json().catch(() => ({}));
+                messages.push({
+                    role: 'model',
+                    content: errData.message || 'The AI service is temporarily unavailable. Please retry your inquiry.',
+                    time: 'Just now'
+                });
+                renderMessages();
+                return;
+            }
+
+            const contentType = res.headers.get('content-type') || '';
+
+            // 1. STREAMING SSE RESPONSE (Real-Time Word-By-Word)
+            if (contentType.includes('text/event-stream') && res.body) {
+                removeTypingIndicator();
+
+                const botMsg = {
+                    role: 'model',
+                    content: '',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                messages.push(botMsg);
+                renderMessages();
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // keep partial trailing chunk
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith('data: ')) continue;
+                        const payloadStr = trimmed.slice(6).trim();
+                        if (payloadStr === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(payloadStr);
+                            if (parsed.delta) {
+                                botMsg.content += parsed.delta;
+
+                                // Update the active DOM bubble live for high-performance rendering
+                                const botRows = body.querySelectorAll('.chat-message-row.bot-row');
+                                const activeRow = botRows[botRows.length - 1];
+                                if (activeRow) {
+                                    const textContent = activeRow.querySelector('.chat-text-content');
+                                    if (textContent) {
+                                        textContent.innerHTML = formatMarkdown(botMsg.content) + '<span class="chat-streaming-cursor"></span>';
+                                    }
+                                }
+                                scrollToBottom();
+                            }
+                        } catch (e) {
+                            // Non-critical chunk parse catch
+                        }
+                    }
+                }
+
+                // Finalize message and remove streaming cursor
+                renderMessages();
+            } else {
+                // 2. STANDARD JSON FALLBACK
+                removeTypingIndicator();
+                const data = await res.json();
+                if (data.success) {
+                    messages.push({
+                        role: 'model',
+                        content: data.reply,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
+                } else {
+                    messages.push({
+                        role: 'model',
+                        content: data.message || 'The AI service is temporarily unavailable. Please retry your inquiry.',
+                        time: 'Just now'
+                    });
+                }
+                renderMessages();
             }
         } catch (err) {
             removeTypingIndicator();
@@ -300,9 +384,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 content: 'Network connection interrupted. Please re-submit your inquiry.',
                 time: 'Just now'
             });
+            renderMessages();
         } finally {
             isLoading = false;
-            renderMessages();
         }
     }
 

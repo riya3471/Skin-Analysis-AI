@@ -582,14 +582,12 @@ def get_ai_recommendations(
     clinically formulated, highly personalized active ingredients and product recommendations.
     Enforces hybrid image lookup and Nepal-accessible buy links.
     """
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        try:
-            api_key = base64.b64decode("QVEuQWI4Uk42TG5rYlNoU2JDa3BDVjlyX2xtRGJVZEUwUjRvYzZXN0FPQ0I3TVA0V0o4WVE=").decode("utf-8").strip()
-        except Exception:
-            api_key = ""
+    if not openrouter_key and api_key.startswith("sk-or-"):
+        openrouter_key = api_key
 
-    if not api_key:
+    if not openrouter_key and not api_key:
         return None
 
     prompt = (
@@ -630,95 +628,135 @@ def get_ai_recommendations(
         f"}}"
     )
 
-    models_to_try = [
-        "models/gemini-3.5-flash-lite",
-        "models/gemini-2.5-flash",
-        "models/gemini-2.0-flash",
-        "models/gemini-1.5-flash",
-        "models/gemini-3.5-flash",
-    ]
+    ai_data = None
+    used_model_name = ""
 
-    payload = {
-        "contents": [
-            {
-                "parts": [{"text": prompt}]
-            }
-        ],
-        "generationConfig": {
-            "response_mime_type": "application/json",
-            "temperature": 0.3
-        }
-    }
-
-    json_bytes = json.dumps(payload).encode("utf-8")
-
-    for model_name in models_to_try:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-            req = urllib.request.Request(
-                url,
-                data=json_bytes,
-                headers={
-                    "Content-Type": "application/json",
-                    "x-goog-api-key": api_key
+    # 1. Primary: OpenRouter (Gemini 3.7 Flash)
+    if openrouter_key:
+        or_models = [
+            "google/gemini-3.7-flash",
+            "google/gemini-3.5-flash-lite",
+            "google/gemini-3.6-flash",
+        ]
+        for model_name in or_models:
+            try:
+                payload = {
+                    "model": model_name,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "response_format": {"type": "json_object"},
+                    "max_tokens": 4000,
+                    "temperature": 0.3
                 }
-            )
-            with urllib.request.urlopen(req, timeout=12) as response:
-                resp_body = json.loads(response.read().decode("utf-8"))
-                candidate_text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
-                if candidate_text.startswith("```"):
-                    candidate_text = candidate_text.split("\n", 1)[1]
-                    if candidate_text.endswith("```"):
-                        candidate_text = candidate_text.rsplit("```", 1)[0]
-                    candidate_text = candidate_text.strip()
-                ai_data = json.loads(candidate_text)
+                req = urllib.request.Request(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {openrouter_key}",
+                        "HTTP-Referer": "https://skinai.com",
+                        "X-Title": "Skin Analysis AI"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=25) as response:
+                    resp_body = json.loads(response.read().decode("utf-8"))
+                    candidate_text = resp_body["choices"][0]["message"]["content"].strip()
+                    if candidate_text.startswith("```"):
+                        candidate_text = candidate_text.split("\n", 1)[1]
+                        if candidate_text.endswith("```"):
+                            candidate_text = candidate_text.rsplit("```", 1)[0]
+                        candidate_text = candidate_text.strip()
+                    ai_data = json.loads(candidate_text)
+                    used_model_name = model_name
+                    break
+            except Exception as ex:
+                print(f"OpenRouter recommendations {model_name} note: {ex}")
+                continue
 
-                # Validate and enhance product recommendations with hybrid images and buy links
-                raw_prods = ai_data.get("product_recommendations") or []
-                enhanced_prods = []
-                for p in raw_prods:
-                    if isinstance(p, dict) and p.get("product"):
-                        prod_name = p.get("product", "")
-                        brand_name = p.get("brand", "")
-                        cat_name = p.get("category", "Serum")
+    # 2. Secondary: Google Gemini REST API (if not handled by OpenRouter)
+    if not ai_data and api_key and not api_key.startswith("sk-or-"):
+        models_to_try = [
+            "models/gemini-3.5-flash-lite",
+            "models/gemini-3.6-flash",
+            "models/gemini-flash-latest",
+        ]
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "response_mime_type": "application/json",
+                "temperature": 0.3
+            }
+        }
+        json_bytes = json.dumps(payload).encode("utf-8")
+        for model_name in models_to_try:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
+                req = urllib.request.Request(
+                    url,
+                    data=json_bytes,
+                    headers={
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": api_key
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    resp_body = json.loads(response.read().decode("utf-8"))
+                    candidate_text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    if candidate_text.startswith("```"):
+                        candidate_text = candidate_text.split("\n", 1)[1]
+                        if candidate_text.endswith("```"):
+                            candidate_text = candidate_text.rsplit("```", 1)[0]
+                        candidate_text = candidate_text.strip()
+                    ai_data = json.loads(candidate_text)
+                    used_model_name = model_name
+                    break
+            except Exception as ex:
+                print(f"Gemini API model {model_name} note: {ex}")
+                continue
 
-                        img = p.get("image_url") or find_product_image(prod_name, brand_name, cat_name)
-                        buy = p.get("buy_url") or generate_buy_url(brand_name, prod_name)
+    if not ai_data:
+        return None
 
-                        enhanced_prods.append({
-                            "ingredient": p.get("ingredient", "Active Treatment"),
-                            "product": prod_name,
-                            "brand": brand_name,
-                            "category": cat_name,
-                            "note": p.get("note", "Recommended for your biomarker profile."),
-                            "image_url": img,
-                            "buy_url": buy
-                        })
+    try:
+        # Validate and enhance product recommendations with hybrid images and buy links
+        raw_prods = ai_data.get("product_recommendations") or []
+        enhanced_prods = []
+        for p in raw_prods:
+            if isinstance(p, dict) and p.get("product"):
+                prod_name = p.get("product", "")
+                brand_name = p.get("brand", "")
+                cat_name = p.get("category", "Serum")
 
-                ai_data["product_recommendations"] = enhanced_prods
+                img = p.get("image_url") or find_product_image(prod_name, brand_name, cat_name)
+                buy = p.get("buy_url") or generate_buy_url(brand_name, prod_name)
 
-                # Ensure non-empty routines and fallback fields
-                if not ai_data.get("morning_routine"):
-                    ai_data["morning_routine"] = ["Wash face with Gentle Cleanser", "Apply targeted active serum", "Apply broad-spectrum SPF 50+ Sunscreen"]
-                if not ai_data.get("night_routine"):
-                    ai_data["night_routine"] = ["Double cleanse skin", "Apply treatment active", "Apply barrier repair moisturizer"]
-                if not ai_data.get("recommendations"):
-                    ai_data["recommendations"] = [
-                        f"Tailored regimen designed for {skin_type} skin with {oiliness_level} oiliness.",
-                        "Maintain consistency for 4-6 weeks to observe clinical improvements in skin barrier health."
-                    ]
+                enhanced_prods.append({
+                    "ingredient": p.get("ingredient", "Active Treatment"),
+                    "product": prod_name,
+                    "brand": brand_name,
+                    "category": cat_name,
+                    "note": p.get("note", "Recommended for your biomarker profile."),
+                    "image_url": img,
+                    "buy_url": buy
+                })
 
-                print(f"Skiné AI: Successfully generated dynamic AI recommendations using {model_name}.")
-                return ai_data
+        ai_data["product_recommendations"] = enhanced_prods
 
-        except urllib.error.HTTPError as he:
-            print(f"Gemini API model {model_name} HTTP {he.code}: {he.reason}")
-            continue
-        except Exception as ex:
-            print(f"Gemini API model {model_name} note: {ex}")
-            continue
+        # Ensure non-empty routines and fallback fields
+        if not ai_data.get("morning_routine"):
+            ai_data["morning_routine"] = ["Wash face with Gentle Cleanser", "Apply targeted active serum", "Apply broad-spectrum SPF 50+ Sunscreen"]
+        if not ai_data.get("night_routine"):
+            ai_data["night_routine"] = ["Double cleanse skin", "Apply treatment active", "Apply barrier repair moisturizer"]
+        if not ai_data.get("recommendations"):
+            ai_data["recommendations"] = [
+                f"Tailored regimen designed for {skin_type} skin with {oiliness_level} oiliness.",
+                "Maintain consistency for 4-6 weeks to observe clinical improvements in skin barrier health."
+            ]
 
-    return None
+        print(f"Skiné AI: Successfully generated dynamic AI recommendations using {used_model_name}.")
+        return ai_data
+    except Exception as ex:
+        print(f"Post-processing recommendations error: {ex}")
+        return None
 
 
 def get_things_to_avoid(

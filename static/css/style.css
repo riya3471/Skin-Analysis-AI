@@ -5240,6 +5240,23 @@ padding:50px 25px;
     40% { transform: scale(1); opacity: 1; }
 }
 
+/* Real-time Streaming Cursor */
+.chat-streaming-cursor {
+    display: inline-block;
+    width: 6px;
+    height: 15px;
+    background-color: var(--green, #707B57);
+    margin-left: 4px;
+    vertical-align: -2px;
+    border-radius: 2px;
+    animation: chat-cursor-blink 0.75s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes chat-cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.1; }
+}
+
 /* Suggestion Chips */
 .skine-chat-chips {
     display: flex;

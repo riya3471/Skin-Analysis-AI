@@ -18,6 +18,8 @@ from flask import (
     flash,
     g,
     send_from_directory,
+    Response,
+    stream_with_context,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -561,11 +563,62 @@ def api_chat_quota():
     })
 
 
+def get_clinical_fallback_text(user_message, skin_type, oiliness_level, overall_score, overall_condition, ingredients_summary, avoid_summary):
+    msg_lower = user_message.lower()
+    if "sebum" in msg_lower or "oil" in msg_lower:
+        return (
+            f"### Impact of Sebum Production on Epidermal Barrier Function\n\n"
+            f"Sebum is an essential lipid mixture produced by sebaceous glands that plays a crucial role in maintaining your skin's acid mantle and preventing transepidermal water loss (TEWL).\n\n"
+            f"• **Current Assessment**: Your scan measured **{oiliness_level} sebum output** with a **{skin_type} skin classification**.\n"
+            f"• **Barrier Balance**: While adequate sebum prevents dryness, excessive sebum oxidation can compromise the skin microbiome and lead to micro-comedones.\n"
+            f"• **Recommended Action**: Use a gentle, low-pH cleanser followed by **Niacinamide (2-5%)** to regulate sebum output without stripping natural barrier lipids.\n"
+            f"• **Nepal Available Options**: Consider [Minimalist 10% Niacinamide on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Minimalist+Niacinamide) or [Derma Co Niacinamide on Jeevee](https://www.jeevee.com/search?q=Derma+Co+Niacinamide).\n"
+            f"• **Key Tip**: Never skip moisturizer; dehydrated skin often compensates by overproducing sebum."
+        )
+    elif "retinol" in msg_lower or "retinoid" in msg_lower:
+        return (
+            f"### Retinoid Safety and Layering Protocol\n\n"
+            f"Retinoids accelerate cellular turnover and stimulate collagen synthesis, making them a gold-standard active for texture refinement and barrier health when introduced gradually.\n\n"
+            f"• **Titration Schedule**: Start 2 nights per week for the first 2 weeks. Gradually increase to alternate nights as tolerance develops.\n"
+            f"• **Buffering Technique**: For your **{skin_type}** skin, apply moisturizer first (or sandwich the retinoid between light moisturizer layers) to minimize erythema.\n"
+            f"• **Nepal Available Options**: Check [The Ordinary Granactive Retinoid on Daraz Nepal](https://www.daraz.com.np/catalog/?q=The+Ordinary+Retinoid) or [Minimalist Retinol on Jeevee](https://www.jeevee.com/search?q=Minimalist+Retinol).\n"
+            f"• **Contraindications**: Do NOT layer Retinol directly with AHAs/BHAs (Salicylic or Glycolic Acid) or pure L-Ascorbic Acid in the same application window.\n"
+            f"• **Essential Step**: Daily broad-spectrum SPF 50 sunscreen is mandatory every morning."
+        )
+    elif "sunscreen" in msg_lower or "spf" in msg_lower or "photoprotection" in msg_lower:
+        return (
+            f"### Optimal Photoprotection Protocol for {skin_type} Skin\n\n"
+            f"Broad-spectrum photoprotection is the most critical pillar for preventing photo-aging, hyperpigmentation, and barrier degradation.\n\n"
+            f"• **Formula Recommendation**: For **{skin_type} skin with {oiliness_level} oiliness**, choose a lightweight fluid or water-gel sunscreen with PA++++ rating.\n"
+            f"• **Nepal Available Options**: [Minimalist SPF 50 on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Minimalist+Sunscreen+SPF+50), [Cosrx Aloe Soothing Sun Cream on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Cosrx+Aloe+Sunscreen), or [Cetaphil Sunscreen on Jeevee](https://www.jeevee.com/search?q=Cetaphil+Sunscreen).\n"
+            f"• **Application Dosage**: Apply two finger lengths (approx. 1/4 teaspoon) to the face and neck every morning as the final routine step."
+        )
+    elif "barrier" in msg_lower or "repair" in msg_lower or "cleanser" in msg_lower:
+        return (
+            f"### Epidermal Barrier Restoration & Cleansing Protocol\n\n"
+            f"A healthy stratum corneum relies on an optimal 3:1:1 physiological ratio of ceramides, cholesterol, and free fatty acids.\n\n"
+            f"• **Key Hydrators**: Favor **Centella Asiatica (Cica)**, **Panthenol (Vitamin B5)**, and **Ceramide NP** to restore intercellular cement.\n"
+            f"• **Nepal Available Options**: [CeraVe Hydrating Cleanser on Daraz Nepal](https://www.daraz.com.np/catalog/?q=CeraVe+Hydrating+Cleanser), [Cetaphil Gentle Skin Cleanser on Jeevee](https://www.jeevee.com/search?q=Cetaphil+Gentle+Skin+Cleanser), or [Cosrx Centella Cream on Daraz](https://www.daraz.com.np/catalog/?q=Cosrx+Centella).\n"
+            f"• **Cleansing Routine**: Wash only with lukewarm water or a sulfate-free non-foaming cream cleanser."
+        )
+    else:
+        return (
+            f"### Personalized Skincare Recommendations for {skin_type} Skin\n\n"
+            f"Based on your facial biomarker scan (Clinical Health Score: **{overall_score}%**, Condition: **{overall_condition}**):\n\n"
+            f"• **Targeted Active Regimen**: Prioritize **{ingredients_summary}** to promote optimal lipid balance and cellular renewal.\n"
+            f"• **AM Protocol**: Gentle Cleanser -> Hydrating Serum -> Lightweight Barrier Cream -> Broad-Spectrum SPF 50.\n"
+            f"• **PM Protocol**: Double Cleanse -> Active Treatment (on dry skin) -> Ceramide Nourishing Cream.\n"
+            f"• **Nepal Available Stores**: Explore verified skincare products on [Daraz Nepal Skincare](https://www.daraz.com.np/health-beauty-skin-care/) and [Jeevee Health Nepal](https://www.jeevee.com/).\n"
+            f"• **Precautionary Notes**: Avoid {avoid_summary} to maintain stratum corneum equilibrium."
+        )
+
+
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     """
     Real-time conversational skincare assistant powered by Gemini.
     Requires user authentication and enforces a 350 messages per 24-hour limit.
+    Supports real-time token streaming via Server-Sent Events (SSE).
     """
     try:
         # 1. Enforce Authentication Requirement
@@ -596,6 +649,7 @@ def api_chat():
         attached_image = data.get("image") or ""
         history = data.get("history") or []
         client_context = data.get("context") or {}
+        is_stream = data.get("stream", True) or "text/event-stream" in request.headers.get("Accept", "")
 
         if not user_message and not attached_image:
             return jsonify({"success": False, "message": "Message or image cannot be empty."}), 400
@@ -657,140 +711,172 @@ def api_chat():
             f"- Caution Ingredients: {avoid_summary}\n"
         )
 
+        openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-        if not api_key:
-            try:
-                import base64
-                api_key = base64.b64decode("QVEuQWI4Uk42TG5rYlNoU2JDa3BDVjlyX2xtRGJVZEUwUjRvYzZXN0FPQ0I3TVA0V0o4WVE=").decode("utf-8").strip()
-            except Exception:
-                api_key = ""
+        if not openrouter_key and api_key.startswith("sk-or-"):
+            openrouter_key = api_key
 
+        # Prepare OpenRouter messages
+        or_messages = [{"role": "system", "content": system_instruction}]
+        for turn in history[-6:]:
+            r = "user" if turn.get("role") == "user" else "assistant"
+            t = (turn.get("content") or turn.get("text") or "").strip()
+            if t:
+                or_messages.append({"role": r, "content": t})
+
+        if attached_image:
+            b64_clean = attached_image
+            mime_type = "image/jpeg"
+            if "," in attached_image:
+                header, b64_clean = attached_image.split(",", 1)
+                if "image/png" in header:
+                    mime_type = "image/png"
+                elif "image/webp" in header:
+                    mime_type = "image/webp"
+            or_messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_message},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64_clean.strip()}"}}
+                ]
+            })
+        else:
+            or_messages.append({"role": "user", "content": user_message})
+
+        # ============================================================
+        # REAL-TIME TOKEN STREAMING HANDLER (SSE)
+        # ============================================================
+        if is_stream:
+            def generate_stream():
+                full_reply = []
+                used_model = "local-fallback"
+                stream_success = False
+
+                if openrouter_key:
+                    or_models = [
+                        "google/gemini-3.7-flash",
+                        "google/gemini-3.5-flash-lite",
+                        "google/gemini-3.6-flash",
+                    ]
+                    for model_name in or_models:
+                        try:
+                            payload = {
+                                "model": model_name,
+                                "messages": or_messages,
+                                "max_tokens": 2500,
+                                "temperature": 0.4,
+                                "stream": True,
+                            }
+                            req = urllib.request.Request(
+                                "https://openrouter.ai/api/v1/chat/completions",
+                                data=json.dumps(payload).encode("utf-8"),
+                                headers={
+                                    "Content-Type": "application/json",
+                                    "Authorization": f"Bearer {openrouter_key}",
+                                    "HTTP-Referer": "https://skinai.com",
+                                    "X-Title": "Skin Analysis AI"
+                                }
+                            )
+                            with urllib.request.urlopen(req, timeout=30) as resp:
+                                for line in resp:
+                                    line_str = line.decode("utf-8").strip()
+                                    if line_str.startswith("data: "):
+                                        data_str = line_str[6:].strip()
+                                        if data_str == "[DONE]":
+                                            break
+                                        try:
+                                            chunk = json.loads(data_str)
+                                            delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                            if delta:
+                                                full_reply.append(delta)
+                                                stream_success = True
+                                                yield f"data: {json.dumps({'delta': delta})}\n\n"
+                                        except Exception:
+                                            pass
+                                if stream_success:
+                                    used_model = f"openrouter/{model_name}"
+                                    break
+                        except Exception as oex:
+                            print(f"OpenRouter stream {model_name} note: {oex}")
+                            if stream_success:
+                                break
+                            continue
+
+                # Graceful clinical fallback with natural word streaming
+                if not stream_success:
+                    import time
+                    fallback_text = get_clinical_fallback_text(
+                        user_message, skin_type, oiliness_level, overall_score, overall_condition, ingredients_summary, avoid_summary
+                    )
+                    words = fallback_text.split(" ")
+                    for i in range(0, len(words), 3):
+                        chunk = " ".join(words[i:i+3]) + (" " if i+3 < len(words) else "")
+                        full_reply.append(chunk)
+                        yield f"data: {json.dumps({'delta': chunk})}\n\n"
+                        time.sleep(0.03)
+
+                # Log final message for quota
+                if full_reply:
+                    try:
+                        log_user_chat_message(user_id)
+                    except Exception:
+                        pass
+
+                yield f"data: {json.dumps({'done': True, 'model': used_model, 'remaining': max(0, remaining - 1)})}\n\n"
+
+            return Response(
+                stream_with_context(generate_stream()),
+                mimetype="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                }
+            )
+
+        # ============================================================
+        # NON-STREAMING FALLBACK (STANDARD JSON)
+        # ============================================================
         reply_text = None
         used_model = "local-fallback"
 
-        if api_key:
-            models_to_try = [
-                "models/gemini-3.5-flash-lite",
-                "models/gemini-2.5-flash",
-                "models/gemini-2.0-flash",
-                "models/gemini-1.5-flash",
-                "models/gemini-3.5-flash",
+        if openrouter_key:
+            or_models = [
+                "google/gemini-3.7-flash",
+                "google/gemini-3.5-flash-lite",
+                "google/gemini-3.6-flash",
             ]
-
-            contents = []
-            # Append previous chat turns for multi-turn conversational context
-            for turn in history[-6:]:
-                role = "user" if turn.get("role") == "user" else "model"
-                text = (turn.get("content") or turn.get("text") or "").strip()
-                if text:
-                    contents.append({"role": role, "parts": [{"text": text}]})
-
-            # Build user's current inquiry parts (multimodal if image attached)
-            current_user_parts = []
-            if attached_image:
-                mime_type = "image/jpeg"
-                b64_clean = attached_image
-                if "," in attached_image:
-                    header, b64_clean = attached_image.split(",", 1)
-                    if "image/png" in header:
-                        mime_type = "image/png"
-                    elif "image/webp" in header:
-                        mime_type = "image/webp"
-                    elif "image/gif" in header:
-                        mime_type = "image/gif"
-                current_user_parts.append({
-                    "inline_data": {
-                        "mime_type": mime_type,
-                        "data": b64_clean.strip()
-                    }
-                })
-
-            current_user_parts.append({"text": user_message})
-            contents.append({"role": "user", "parts": current_user_parts})
-
-            payload = {
-                "system_instruction": {
-                    "parts": [{"text": system_instruction}]
-                },
-                "contents": contents,
-                "generationConfig": {
-                    "temperature": 0.3,
-                    "maxOutputTokens": 2048,
-                }
-            }
-
-            json_bytes = json.dumps(payload).encode("utf-8")
-
-            for model_name in models_to_try:
+            for model_name in or_models:
                 try:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
+                    payload = {
+                        "model": model_name,
+                        "messages": or_messages,
+                        "max_tokens": 2500,
+                        "temperature": 0.4
+                    }
                     req = urllib.request.Request(
-                        url,
-                        data=json_bytes,
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        data=json.dumps(payload).encode("utf-8"),
                         headers={
                             "Content-Type": "application/json",
-                            "x-goog-api-key": api_key
+                            "Authorization": f"Bearer {openrouter_key}",
+                            "HTTP-Referer": "https://skinai.com",
+                            "X-Title": "Skin Analysis AI"
                         }
                     )
-                    with urllib.request.urlopen(req, timeout=10) as response:
+                    with urllib.request.urlopen(req, timeout=25) as response:
                         resp_body = json.loads(response.read().decode("utf-8"))
-                        reply_text = resp_body["candidates"][0]["content"]["parts"][0]["text"].strip()
-                        used_model = model_name
+                        reply_text = resp_body["choices"][0]["message"]["content"].strip()
+                        used_model = f"openrouter/{model_name}"
                         break
-                except Exception as ex:
-                    print(f"Chat Gemini model {model_name} note: {ex}")
+                except Exception as oex:
+                    print(f"OpenRouter chat {model_name} note: {oex}")
                     continue
 
         if not reply_text:
-            msg_lower = user_message.lower()
-            if "sebum" in msg_lower or "oil" in msg_lower:
-                reply_text = (
-                    f"### Impact of Sebum Production on Epidermal Barrier Function\n\n"
-                    f"Sebum is an essential lipid mixture produced by sebaceous glands that plays a crucial role in maintaining your skin's acid mantle and preventing transepidermal water loss (TEWL).\n\n"
-                    f"• **Current Assessment**: Your scan measured **{oiliness_level} sebum output** with a **{skin_type} skin classification**.\n"
-                    f"• **Barrier Balance**: While adequate sebum prevents dryness, excessive sebum oxidation can compromise the skin microbiome and lead to micro-comedones.\n"
-                    f"• **Recommended Action**: Use a gentle, low-pH cleanser followed by **Niacinamide (2-5%)** to regulate sebum output without stripping natural barrier lipids.\n"
-                    f"• **Nepal Available Options**: Consider [Minimalist 10% Niacinamide on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Minimalist+Niacinamide) or [Derma Co Niacinamide on Jeevee](https://www.jeevee.com/search?q=Derma+Co+Niacinamide).\n"
-                    f"• **Key Tip**: Never skip moisturizer; dehydrated skin often compensates by overproducing sebum."
-                )
-            elif "retinol" in msg_lower or "retinoid" in msg_lower:
-                reply_text = (
-                    f"### Retinoid Safety and Layering Protocol\n\n"
-                    f"Retinoids accelerate cellular turnover and stimulate collagen synthesis, making them a gold-standard active for texture refinement and barrier health when introduced gradually.\n\n"
-                    f"• **Titration Schedule**: Start 2 nights per week for the first 2 weeks. Gradually increase to alternate nights as tolerance develops.\n"
-                    f"• **Buffering Technique**: For your **{skin_type}** skin, apply moisturizer first (or sandwich the retinoid between light moisturizer layers) to minimize erythema.\n"
-                    f"• **Nepal Available Options**: Check [The Ordinary Granactive Retinoid on Daraz Nepal](https://www.daraz.com.np/catalog/?q=The+Ordinary+Retinoid) or [Minimalist Retinol on Jeevee](https://www.jeevee.com/search?q=Minimalist+Retinol).\n"
-                    f"• **Contraindications**: Do NOT layer Retinol directly with AHAs/BHAs (Salicylic or Glycolic Acid) or pure L-Ascorbic Acid in the same application window.\n"
-                    f"• **Essential Step**: Daily broad-spectrum SPF 50 sunscreen is mandatory every morning."
-                )
-            elif "sunscreen" in msg_lower or "spf" in msg_lower or "photoprotection" in msg_lower:
-                reply_text = (
-                    f"### Optimal Photoprotection Protocol for {skin_type} Skin\n\n"
-                    f"Broad-spectrum photoprotection is the most critical pillar for preventing photo-aging, hyperpigmentation, and barrier degradation.\n\n"
-                    f"• **Formula Recommendation**: For **{skin_type} skin with {oiliness_level} oiliness**, choose a lightweight fluid or water-gel sunscreen with PA++++ rating.\n"
-                    f"• **Nepal Available Options**: [Minimalist SPF 50 on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Minimalist+Sunscreen+SPF+50), [Cosrx Aloe Soothing Sun Cream on Daraz Nepal](https://www.daraz.com.np/catalog/?q=Cosrx+Aloe+Sunscreen), or [Cetaphil Sunscreen on Jeevee](https://www.jeevee.com/search?q=Cetaphil+Sunscreen).\n"
-                    f"• **Application Dosage**: Apply two finger lengths (approx. 1/4 teaspoon) to the face and neck every morning as the final routine step."
-                )
-            elif "barrier" in msg_lower or "repair" in msg_lower or "cleanser" in msg_lower:
-                reply_text = (
-                    f"### Epidermal Barrier Restoration & Cleansing Protocol\n\n"
-                    f"A healthy stratum corneum relies on an optimal 3:1:1 physiological ratio of ceramides, cholesterol, and free fatty acids.\n\n"
-                    f"• **Key Hydrators**: Favor **Centella Asiatica (Cica)**, **Panthenol (Vitamin B5)**, and **Ceramide NP** to restore intercellular cement.\n"
-                    f"• **Nepal Available Options**: [CeraVe Hydrating Cleanser on Daraz Nepal](https://www.daraz.com.np/catalog/?q=CeraVe+Hydrating+Cleanser), [Cetaphil Gentle Skin Cleanser on Jeevee](https://www.jeevee.com/search?q=Cetaphil+Gentle+Skin+Cleanser), or [Cosrx Centella Cream on Daraz](https://www.daraz.com.np/catalog/?q=Cosrx+Centella).\n"
-                    f"• **Cleansing Routine**: Wash only with lukewarm water or a sulfate-free non-foaming cream cleanser."
-                )
-            else:
-                reply_text = (
-                    f"### Personalized Skincare Recommendations for {skin_type} Skin\n\n"
-                    f"Based on your facial biomarker scan (Clinical Health Score: **{overall_score}%**, Condition: **{overall_condition}**):\n\n"
-                    f"• **Targeted Active Regimen**: Prioritize **{ingredients_summary}** to promote optimal lipid balance and cellular renewal.\n"
-                    f"• **AM Protocol**: Gentle Cleanser -> Hydrating Serum -> Lightweight Barrier Cream -> Broad-Spectrum SPF 50.\n"
-                    f"• **PM Protocol**: Double Cleanse -> Active Treatment (on dry skin) -> Ceramide Nourishing Cream.\n"
-                    f"• **Nepal Available Stores**: Explore verified skincare products on [Daraz Nepal Skincare](https://www.daraz.com.np/health-beauty-skin-care/) and [Jeevee Health Nepal](https://www.jeevee.com/).\n"
-                    f"• **Precautionary Notes**: Avoid {avoid_summary} to maintain stratum corneum equilibrium."
-                )
+            reply_text = get_clinical_fallback_text(
+                user_message, skin_type, oiliness_level, overall_score, overall_condition, ingredients_summary, avoid_summary
+            )
 
-        # 3. Log the successful message for 24-hour rate limit tracking
         log_user_chat_message(user_id)
 
         return jsonify({
