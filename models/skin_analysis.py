@@ -96,28 +96,16 @@ def analyze_with_gemini_vision(image_path):
         prompt = (
             "You are an expert dermatological Computer Vision AI. Inspect this uploaded image.\n"
             "Task:\n"
-            "1. Determine if a clear human face is present and suitable for dermatological skin analysis.\n"
-            "2. If no face is present (e.g., covered lens, blank background, non-human object), set is_face_detected to false and explain why in rejection_reason.\n"
-            "3. If a face is present, set is_face_detected to true, and provide normalized bounding box coordinates [ymin, xmin, ymax, xmax] as integers between 0 and 1000.\n"
-            "4. Provide a clinical biomarker assessment of the facial skin.\n\n"
+            "1. Determine if a clear human face is present and suitable for facial skin analysis.\n"
+            "2. If no face is present (e.g., covered lens, blank background, pet, non-human object), set is_face_detected to false and explain why in rejection_reason.\n"
+            "3. If a face is present, set is_face_detected to true, and provide precise normalized bounding box coordinates [ymin, xmin, ymax, xmax] as integers between 0 and 1000 tightly surrounding the head/face.\n"
+            "4. Provide a qualitative clinical description of the skin in overall_condition (e.g., 'Hydrated & Balanced', 'Mild T-Zone Shine', 'Dehydrated Skin Barrier', 'Erythema & Sensitivity').\n\n"
             "Strictly return a JSON object with this exact structure (no markdown fences, just pure JSON):\n"
             "{\n"
             '  "is_face_detected": true,\n'
             '  "rejection_reason": null,\n'
             '  "face_box": [100, 250, 850, 750],\n'
-            '  "skin_type": "Oily" | "Dry" | "Combination" | "Normal",\n'
-            '  "oiliness_score": <number 0-100>,\n'
-            '  "oiliness_level": "Low" | "Moderate" | "High",\n'
-            '  "dryness_score": <number 0-100>,\n'
-            '  "dryness_level": "Low" | "Moderate" | "High",\n'
-            '  "texture_score": <number 0-100>,\n'
-            '  "texture_level": "Smooth" | "Medium Detail" | "High Detail",\n'
-            '  "redness_score": <number 0-100>,\n'
-            '  "redness_level": "Low" | "Moderate" | "High",\n'
-            '  "pigmentation_score": <number 0-100>,\n'
-            '  "pigmentation_level": "Low" | "Moderate" | "High",\n'
-            '  "overall_condition": "<Short 3-5 word clinical description>",\n'
-            '  "overall_score": <number 50-100>\n'
+            '  "overall_condition": "<Short 3-5 word clinical description>"\n'
             "}"
         )
 
@@ -142,7 +130,7 @@ def analyze_with_gemini_vision(image_path):
                             }
                         ],
                         "response_format": {"type": "json_object"},
-                        "max_tokens": 1500,
+                        "max_tokens": 400,
                         "temperature": 0.2
                     }
                     req = urllib.request.Request(
@@ -281,19 +269,22 @@ def analyze_skin_image(image_path, output_dir=None):
         }
 
     # =====================================================
-    # 1. PRIMARY ENGINE: MULTIMODAL AI VISION FACE ANALYSIS
+    # 1. FACE REGISTRATION & LOCALIZATION
     # =====================================================
+    face_box = None
+    clinical_condition = None
+    engine_used = "opencv_cv"
+
+    # Primary: Multimodal AI Vision face detector
     ai_data = analyze_with_gemini_vision(image_path)
     if ai_data is not None:
-        is_detected = ai_data.get("is_face_detected", True)
-        if not is_detected:
+        if not ai_data.get("is_face_detected", True):
             return {
                 "success": False,
                 "message": ai_data.get("rejection_reason") or "No face detected in the frame. Please look directly at the camera with your face clearly centered."
             }
 
-        # Face was confirmed by AI Vision
-        face_box = None
+        clinical_condition = ai_data.get("overall_condition")
         raw_box = ai_data.get("face_box")
         if isinstance(raw_box, (list, tuple)) and len(raw_box) == 4:
             try:
@@ -304,129 +295,12 @@ def analyze_skin_image(image_path, output_dir=None):
                 x2 = int(max(0, min(w_img, (xmax / 1000.0) * w_img)))
                 if (x2 - x1) > 40 and (y2 - y1) > 40:
                     face_box = (x1, y1, x2 - x1, y2 - y1)
+                    engine_used = "ai_vision"
             except Exception:
                 face_box = None
 
-        if face_box is None:
-            # Centered portrait fallback window
-            crop_w = int(w_img * 0.70)
-            crop_h = int(h_img * 0.75)
-            crop_x = max(0, (w_img - crop_w) // 2)
-            crop_y = max(0, int((h_img - crop_h) * 0.25))
-            face_box = (crop_x, crop_y, crop_w, crop_h)
-
-        x, y, w, h = face_box
-        face_raw = image[y:y + h, x:x + w]
-        face_h, face_w = face_raw.shape[:2]
-        face_skin_mask = get_skin_mask(face_raw)
-        face_normalized = apply_gray_world_white_balance(face_raw, face_skin_mask)
-
-        # Visual crops for UI
-        face_crop_path = os.path.join(output_dir, "cropped_face.jpg")
-        cv2.imwrite(face_crop_path, face_raw)
-
-        fh_y1, fh_y2 = int(face_h * 0.10), int(face_h * 0.28)
-        fh_x1, fh_x2 = int(face_w * 0.28), int(face_w * 0.72)
-        lc_y1, lc_y2 = int(face_h * 0.44), int(face_h * 0.70)
-        lc_x1, lc_x2 = int(face_w * 0.16), int(face_w * 0.40)
-        rc_y1, rc_y2 = int(face_h * 0.44), int(face_h * 0.70)
-        rc_x1, rc_x2 = int(face_w * 0.60), int(face_w * 0.84)
-
-        forehead_crop_path = os.path.join(output_dir, "forehead.jpg")
-        left_cheek_crop_path = os.path.join(output_dir, "left_cheek.jpg")
-        right_cheek_crop_path = os.path.join(output_dir, "right_cheek.jpg")
-
-        cv2.imwrite(forehead_crop_path, face_raw[fh_y1:fh_y2, fh_x1:fh_x2])
-        cv2.imwrite(left_cheek_crop_path, face_raw[lc_y1:lc_y2, lc_x1:lc_x2])
-        cv2.imwrite(right_cheek_crop_path, face_raw[rc_y1:rc_y2, rc_x1:rc_x2])
-
-        # Parse biomarkers directly from AI Vision
-        skin_type = ai_data.get("skin_type") if ai_data.get("skin_type") in ["Oily", "Dry", "Combination", "Normal"] else "Combination"
-        overall_score = float(ai_data.get("overall_score", 85.0))
-        overall_condition = ai_data.get("overall_condition") or "Healthy Skin Barrier"
-        oiliness_score = float(ai_data.get("oiliness_score", 50.0))
-        oiliness_level = ai_data.get("oiliness_level") or ("High" if oiliness_score >= 60 else "Low" if oiliness_score <= 35 else "Moderate")
-        dryness_score = float(ai_data.get("dryness_score", 30.0))
-        dryness_level = ai_data.get("dryness_level") or ("High" if dryness_score >= 60 else "Low" if dryness_score <= 35 else "Moderate")
-        texture_score = float(ai_data.get("texture_score", 30.0))
-        texture_level = ai_data.get("texture_level") or "Smooth"
-        redness_score = float(ai_data.get("redness_score", 20.0))
-        redness_level = ai_data.get("redness_level") or "Low"
-        pigmentation_score = float(ai_data.get("pigmentation_score", 25.0))
-        pigmentation_level = ai_data.get("pigmentation_level") or "Low"
-
-        # Region illumination diagnostics
-        forehead = face_normalized[fh_y1:fh_y2, fh_x1:fh_x2]
-        left_cheek = face_normalized[lc_y1:lc_y2, lc_x1:lc_x2]
-        right_cheek = face_normalized[rc_y1:rc_y2, rc_x1:rc_x2]
-        fh_hsv = cv2.cvtColor(forehead, cv2.COLOR_BGR2HSV)
-        lc_hsv = cv2.cvtColor(left_cheek, cv2.COLOR_BGR2HSV)
-        rc_hsv = cv2.cvtColor(right_cheek, cv2.COLOR_BGR2HSV)
-        fh_val = fh_hsv[:, :, 2].astype(np.float32)
-        lc_val = lc_hsv[:, :, 2].astype(np.float32)
-        rc_val = rc_hsv[:, :, 2].astype(np.float32)
-        forehead_brightness = float(np.mean(fh_val))
-        cheek_brightness = float((np.mean(lc_val) + np.mean(rc_val)) / 2.0)
-        brightness_difference = forehead_brightness - cheek_brightness
-        forehead_saturation = float(np.mean(fh_hsv[:, :, 1]))
-        shiny_percentage = min(100.0, max(0.0, (oiliness_score / 100.0) * 35.0))
-
-        skincare_plan = get_recommendations(
-            skin_type,
-            oiliness_level,
-            dryness_level,
-            texture_level,
-            redness_level,
-            pigmentation_level
-        )
-
-        print(f"Skin Analysis AI: Multimodal AI vision analysis complete ({skin_type}, {overall_score}%).")
-        return {
-            "success": True,
-            "message": "Skin features analyzed successfully with Multimodal AI Vision.",
-            "face_detected": True,
-            "engine": "ai_vision",
-            "cropped_face": os.path.basename(face_crop_path),
-            "forehead": os.path.basename(forehead_crop_path),
-            "left_cheek": os.path.basename(left_cheek_crop_path),
-            "right_cheek": os.path.basename(right_cheek_crop_path),
-            "face_crop_full_path": face_crop_path,
-            "forehead_crop_full_path": forehead_crop_path,
-            "left_cheek_crop_full_path": left_cheek_crop_path,
-            "right_cheek_crop_full_path": right_cheek_crop_path,
-            "skin_type": skin_type,
-            "overall_score": overall_score,
-            "overall_condition": overall_condition,
-            "forehead_brightness": round(forehead_brightness, 2),
-            "cheek_brightness": round(cheek_brightness, 2),
-            "brightness_difference": round(brightness_difference, 2),
-            "forehead_saturation": round(forehead_saturation, 2),
-            "shiny_percentage": round(shiny_percentage, 2),
-            "oiliness_score": round(oiliness_score, 1),
-            "oiliness_level": oiliness_level,
-            "dryness_score": round(dryness_score, 1),
-            "dryness_level": dryness_level,
-            "texture_score": round(texture_score, 1),
-            "texture_level": texture_level,
-            "redness_score": round(redness_score, 1),
-            "redness_level": redness_level,
-            "pigmentation_score": round(pigmentation_score, 1),
-            "pigmentation_level": pigmentation_level,
-            "recommendations": skincare_plan["recommendations"],
-            "morning_routine": skincare_plan["morning_routine"],
-            "night_routine": skincare_plan["night_routine"],
-            "recommended_ingredients": skincare_plan["recommended_ingredients"],
-            "product_recommendations": skincare_plan.get("product_recommendations", []),
-            "things_to_avoid": skincare_plan.get("things_to_avoid", []),
-            "possible_causes": skincare_plan.get("possible_causes", []),
-            "lifestyle_suggestions": skincare_plan.get("lifestyle_suggestions", [])
-        }
-
-    # =====================================================
-    # 2. SECONDARY / FALLBACK ENGINE: OPENCV COMPUTER VISION
-    # =====================================================
-    print("Skin Analysis AI: AI Vision unavailable. Engaging OpenCV Computer Vision fallback.")
-    face_box = None
+    if face_box is None:
+        print("Skin Analysis AI: AI Vision not available or face box unparsed. Engaging OpenCV Computer Vision fallback.")
 
     # Helper: Multi-scale & Multi-rotation Haar Detection
     def detect_face_multiscale(gray_img, w_i, h_i):
@@ -798,40 +672,25 @@ def analyze_skin_image(image_path, output_dir=None):
         skin_type = "Normal"
 
     # =====================================================
-    # 10. OVERALL HEALTH SCORE & CLINICAL CONDITION
+    # 10. CONTINUOUS SCIENTIFIC BIOMETRIC HEALTH SCORING
     # =====================================================
-    deductions = 0.0
-    if oiliness_level == "High":
-        deductions += 9.0
-    elif oiliness_level == "Moderate":
-        deductions += 3.5
+    # Deductions are continuously proportional to real measured pixel values (no hardcoding or discrete jumps)
+    oil_deduction = max(0.0, (oiliness_score - 22.0) * 0.16) if oiliness_score > 22.0 else 0.0
+    dry_deduction = max(0.0, (dryness_score - 22.0) * 0.16) if dryness_score > 22.0 else 0.0
+    red_deduction = max(0.0, (redness_score - 18.0) * 0.22) if redness_score > 18.0 else 0.0
+    pig_deduction = max(0.0, (pigmentation_score - 18.0) * 0.18) if pigmentation_score > 18.0 else 0.0
+    tex_deduction = max(0.0, (texture_score - 22.0) * 0.14) if texture_score > 22.0 else 0.0
 
-    if dryness_level == "High":
-        deductions += 10.0
-    elif dryness_level == "Moderate":
-        deductions += 4.0
+    total_deductions = oil_deduction + dry_deduction + red_deduction + pig_deduction + tex_deduction
+    overall_score = float(max(50.0, min(98.5, round(100.0 - total_deductions, 1))))
 
-    if redness_level == "High":
-        deductions += 12.0
-    elif redness_level == "Moderate":
-        deductions += 5.0
-
-    if pigmentation_level == "High":
-        deductions += 10.0
-    elif pigmentation_level == "Moderate":
-        deductions += 4.5
-
-    if texture_level == "High Detail":
-        deductions += 7.0
-    elif texture_level == "Medium Detail":
-        deductions += 2.5
-
-    overall_score = float(max(55.0, min(98.5, round(100.0 - deductions, 1))))
-
-    if redness_level == "High":
+    # Clinical condition assignment
+    if clinical_condition and len(clinical_condition.strip()) > 3:
+        overall_condition = clinical_condition.strip()
+    elif redness_level == "High":
         overall_condition = "Sensitive & Redness Prone"
     elif oiliness_level == "High" and texture_level == "High Detail":
-        overall_condition = "Mild Acne & Congested Pores"
+        overall_condition = "Congested Pores & Sebum Excess"
     elif oiliness_level == "High":
         overall_condition = "Excess Sebum & Shine"
     elif dryness_level == "High":
@@ -842,32 +701,6 @@ def analyze_skin_image(image_path, output_dir=None):
         overall_condition = "Combination T-Zone"
     else:
         overall_condition = "Healthy & Balanced"
-
-    # =====================================================
-    # 11. CHECK GEMINI MULTIMODAL VISION HYBRID ENHANCEMENT
-    # =====================================================
-    gemini_result = analyze_with_gemini_vision(image_path)
-    if gemini_result:
-        try:
-            # Safely incorporate Gemini insights with high stability
-            if "skin_type" in gemini_result and gemini_result["skin_type"] in ["Oily", "Dry", "Combination", "Normal"]:
-                skin_type = gemini_result["skin_type"]
-            if "overall_condition" in gemini_result and gemini_result["overall_condition"]:
-                overall_condition = gemini_result["overall_condition"]
-            if "overall_score" in gemini_result and isinstance(gemini_result["overall_score"], (int, float)):
-                overall_score = float(round(gemini_result["overall_score"], 1))
-            if "oiliness_level" in gemini_result:
-                oiliness_level = gemini_result["oiliness_level"]
-            if "dryness_level" in gemini_result:
-                dryness_level = gemini_result["dryness_level"]
-            if "redness_level" in gemini_result:
-                redness_level = gemini_result["redness_level"]
-            if "pigmentation_level" in gemini_result:
-                pigmentation_level = gemini_result["pigmentation_level"]
-            if "texture_level" in gemini_result:
-                texture_level = gemini_result["texture_level"]
-        except Exception as e:
-            print(f"Gemini consensus parsing note: {e}")
 
     # =====================================================
     # 12. GENERATE DERMATOLOGICAL SKINCARE PLAN
@@ -885,6 +718,7 @@ def analyze_skin_image(image_path, output_dir=None):
         "success": True,
         "message": "Skin features analyzed successfully.",
         "face_detected": True,
+        "engine": engine_used,
 
         # Crops & File Paths
         "cropped_face": os.path.basename(face_crop_path),

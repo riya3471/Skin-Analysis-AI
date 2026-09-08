@@ -631,11 +631,11 @@ def get_ai_recommendations(
     ai_data = None
     used_model_name = ""
 
-    # 1. Primary: OpenRouter (Gemini 3.7 Flash)
+    # 1. Primary: OpenRouter (Gemini 3.5 Flash Lite / 3.7 Flash)
     if openrouter_key:
         or_models = [
-            "google/gemini-3.7-flash",
             "google/gemini-3.5-flash-lite",
+            "google/gemini-3.7-flash",
             "google/gemini-3.6-flash",
         ]
         for model_name in or_models:
@@ -644,7 +644,7 @@ def get_ai_recommendations(
                     "model": model_name,
                     "messages": [{"role": "user", "content": prompt}],
                     "response_format": {"type": "json_object"},
-                    "max_tokens": 4000,
+                    "max_tokens": 1500,
                     "temperature": 0.3
                 }
                 req = urllib.request.Request(
