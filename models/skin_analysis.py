@@ -78,8 +78,8 @@ def get_skin_mask(bgr_image):
 
 def analyze_with_gemini_vision(image_path):
     """
-    Uses Google Gemini Vision API via direct REST endpoint if GEMINI_API_KEY is configured.
-    Provides context-aware dermatological biomarker assessment.
+    Uses OpenRouter Multimodal AI Vision (Gemini) as primary face detector and biomarker analyst.
+    Returns structured JSON with face detection status, normalized face bounding box, and dermatological biomarkers.
     """
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
@@ -94,10 +94,17 @@ def analyze_with_gemini_vision(image_path):
             base64_data = base64.b64encode(img_file.read()).decode("utf-8")
 
         prompt = (
-            "You are an expert dermatological AI. Carefully inspect this front-facing facial skin portrait. "
-            "Analyze the skin type and biomarkers, compensating for ambient room lighting, shadows, and camera noise. "
-            "Return strictly a JSON object with this exact structure (no markdown fences, just JSON):\n"
+            "You are an expert dermatological Computer Vision AI. Inspect this uploaded image.\n"
+            "Task:\n"
+            "1. Determine if a clear human face is present and suitable for dermatological skin analysis.\n"
+            "2. If no face is present (e.g., covered lens, blank background, non-human object), set is_face_detected to false and explain why in rejection_reason.\n"
+            "3. If a face is present, set is_face_detected to true, and provide normalized bounding box coordinates [ymin, xmin, ymax, xmax] as integers between 0 and 1000.\n"
+            "4. Provide a clinical biomarker assessment of the facial skin.\n\n"
+            "Strictly return a JSON object with this exact structure (no markdown fences, just pure JSON):\n"
             "{\n"
+            '  "is_face_detected": true,\n'
+            '  "rejection_reason": null,\n'
+            '  "face_box": [100, 250, 850, 750],\n'
             '  "skin_type": "Oily" | "Dry" | "Combination" | "Normal",\n'
             '  "oiliness_score": <number 0-100>,\n'
             '  "oiliness_level": "Low" | "Moderate" | "High",\n'
@@ -114,13 +121,12 @@ def analyze_with_gemini_vision(image_path):
             "}"
         )
 
-        # 1. Primary: OpenRouter AI Vision (Gemini 3.7 Flash)
+        # 1. Primary: OpenRouter AI Vision (Gemini 3.5 Flash Lite / 3.7 Flash)
         if openrouter_key:
             or_models = [
-                "google/gemini-3.7-flash",
                 "google/gemini-3.5-flash-lite",
+                "google/gemini-3.7-flash",
                 "google/gemini-3.6-flash",
-                "meta-llama/llama-3.2-11b-vision-instruct:free",
             ]
             for model_name in or_models:
                 try:
@@ -136,7 +142,7 @@ def analyze_with_gemini_vision(image_path):
                             }
                         ],
                         "response_format": {"type": "json_object"},
-                        "max_tokens": 2500,
+                        "max_tokens": 1500,
                         "temperature": 0.2
                     }
                     req = urllib.request.Request(
@@ -158,7 +164,7 @@ def analyze_with_gemini_vision(image_path):
                                 candidate_text = candidate_text.rsplit("```", 1)[0]
                             candidate_text = candidate_text.strip()
                         ai_data = json.loads(candidate_text)
-                        print(f"Skin Analysis AI: Successfully received multimodal assessment from OpenRouter ({model_name}).")
+                        print(f"Skin Analysis AI: Successfully processed facial scan via OpenRouter ({model_name}).")
                         return ai_data
                 except Exception as ex:
                     print(f"OpenRouter Vision model {model_name} note: {ex}")
@@ -275,8 +281,151 @@ def analyze_skin_image(image_path, output_dir=None):
         }
 
     # =====================================================
-    # FACE DETECTION & MULTI-ANGLE BOUNDING BOX REFINEMENT
+    # 1. PRIMARY ENGINE: MULTIMODAL AI VISION FACE ANALYSIS
     # =====================================================
+    ai_data = analyze_with_gemini_vision(image_path)
+    if ai_data is not None:
+        is_detected = ai_data.get("is_face_detected", True)
+        if not is_detected:
+            return {
+                "success": False,
+                "message": ai_data.get("rejection_reason") or "No face detected in the frame. Please look directly at the camera with your face clearly centered."
+            }
+
+        # Face was confirmed by AI Vision
+        face_box = None
+        raw_box = ai_data.get("face_box")
+        if isinstance(raw_box, (list, tuple)) and len(raw_box) == 4:
+            try:
+                ymin, xmin, ymax, xmax = [float(v) for v in raw_box]
+                y1 = int(max(0, min(h_img, (ymin / 1000.0) * h_img)))
+                y2 = int(max(0, min(h_img, (ymax / 1000.0) * h_img)))
+                x1 = int(max(0, min(w_img, (xmin / 1000.0) * w_img)))
+                x2 = int(max(0, min(w_img, (xmax / 1000.0) * w_img)))
+                if (x2 - x1) > 40 and (y2 - y1) > 40:
+                    face_box = (x1, y1, x2 - x1, y2 - y1)
+            except Exception:
+                face_box = None
+
+        if face_box is None:
+            # Centered portrait fallback window
+            crop_w = int(w_img * 0.70)
+            crop_h = int(h_img * 0.75)
+            crop_x = max(0, (w_img - crop_w) // 2)
+            crop_y = max(0, int((h_img - crop_h) * 0.25))
+            face_box = (crop_x, crop_y, crop_w, crop_h)
+
+        x, y, w, h = face_box
+        face_raw = image[y:y + h, x:x + w]
+        face_h, face_w = face_raw.shape[:2]
+        face_skin_mask = get_skin_mask(face_raw)
+        face_normalized = apply_gray_world_white_balance(face_raw, face_skin_mask)
+
+        # Visual crops for UI
+        face_crop_path = os.path.join(output_dir, "cropped_face.jpg")
+        cv2.imwrite(face_crop_path, face_raw)
+
+        fh_y1, fh_y2 = int(face_h * 0.10), int(face_h * 0.28)
+        fh_x1, fh_x2 = int(face_w * 0.28), int(face_w * 0.72)
+        lc_y1, lc_y2 = int(face_h * 0.44), int(face_h * 0.70)
+        lc_x1, lc_x2 = int(face_w * 0.16), int(face_w * 0.40)
+        rc_y1, rc_y2 = int(face_h * 0.44), int(face_h * 0.70)
+        rc_x1, rc_x2 = int(face_w * 0.60), int(face_w * 0.84)
+
+        forehead_crop_path = os.path.join(output_dir, "forehead.jpg")
+        left_cheek_crop_path = os.path.join(output_dir, "left_cheek.jpg")
+        right_cheek_crop_path = os.path.join(output_dir, "right_cheek.jpg")
+
+        cv2.imwrite(forehead_crop_path, face_raw[fh_y1:fh_y2, fh_x1:fh_x2])
+        cv2.imwrite(left_cheek_crop_path, face_raw[lc_y1:lc_y2, lc_x1:lc_x2])
+        cv2.imwrite(right_cheek_crop_path, face_raw[rc_y1:rc_y2, rc_x1:rc_x2])
+
+        # Parse biomarkers directly from AI Vision
+        skin_type = ai_data.get("skin_type") if ai_data.get("skin_type") in ["Oily", "Dry", "Combination", "Normal"] else "Combination"
+        overall_score = float(ai_data.get("overall_score", 85.0))
+        overall_condition = ai_data.get("overall_condition") or "Healthy Skin Barrier"
+        oiliness_score = float(ai_data.get("oiliness_score", 50.0))
+        oiliness_level = ai_data.get("oiliness_level") or ("High" if oiliness_score >= 60 else "Low" if oiliness_score <= 35 else "Moderate")
+        dryness_score = float(ai_data.get("dryness_score", 30.0))
+        dryness_level = ai_data.get("dryness_level") or ("High" if dryness_score >= 60 else "Low" if dryness_score <= 35 else "Moderate")
+        texture_score = float(ai_data.get("texture_score", 30.0))
+        texture_level = ai_data.get("texture_level") or "Smooth"
+        redness_score = float(ai_data.get("redness_score", 20.0))
+        redness_level = ai_data.get("redness_level") or "Low"
+        pigmentation_score = float(ai_data.get("pigmentation_score", 25.0))
+        pigmentation_level = ai_data.get("pigmentation_level") or "Low"
+
+        # Region illumination diagnostics
+        forehead = face_normalized[fh_y1:fh_y2, fh_x1:fh_x2]
+        left_cheek = face_normalized[lc_y1:lc_y2, lc_x1:lc_x2]
+        right_cheek = face_normalized[rc_y1:rc_y2, rc_x1:rc_x2]
+        fh_hsv = cv2.cvtColor(forehead, cv2.COLOR_BGR2HSV)
+        lc_hsv = cv2.cvtColor(left_cheek, cv2.COLOR_BGR2HSV)
+        rc_hsv = cv2.cvtColor(right_cheek, cv2.COLOR_BGR2HSV)
+        fh_val = fh_hsv[:, :, 2].astype(np.float32)
+        lc_val = lc_hsv[:, :, 2].astype(np.float32)
+        rc_val = rc_hsv[:, :, 2].astype(np.float32)
+        forehead_brightness = float(np.mean(fh_val))
+        cheek_brightness = float((np.mean(lc_val) + np.mean(rc_val)) / 2.0)
+        brightness_difference = forehead_brightness - cheek_brightness
+        forehead_saturation = float(np.mean(fh_hsv[:, :, 1]))
+        shiny_percentage = min(100.0, max(0.0, (oiliness_score / 100.0) * 35.0))
+
+        skincare_plan = get_recommendations(
+            skin_type,
+            oiliness_level,
+            dryness_level,
+            texture_level,
+            redness_level,
+            pigmentation_level
+        )
+
+        print(f"Skin Analysis AI: Multimodal AI vision analysis complete ({skin_type}, {overall_score}%).")
+        return {
+            "success": True,
+            "message": "Skin features analyzed successfully with Multimodal AI Vision.",
+            "face_detected": True,
+            "engine": "ai_vision",
+            "cropped_face": os.path.basename(face_crop_path),
+            "forehead": os.path.basename(forehead_crop_path),
+            "left_cheek": os.path.basename(left_cheek_crop_path),
+            "right_cheek": os.path.basename(right_cheek_crop_path),
+            "face_crop_full_path": face_crop_path,
+            "forehead_crop_full_path": forehead_crop_path,
+            "left_cheek_crop_full_path": left_cheek_crop_path,
+            "right_cheek_crop_full_path": right_cheek_crop_path,
+            "skin_type": skin_type,
+            "overall_score": overall_score,
+            "overall_condition": overall_condition,
+            "forehead_brightness": round(forehead_brightness, 2),
+            "cheek_brightness": round(cheek_brightness, 2),
+            "brightness_difference": round(brightness_difference, 2),
+            "forehead_saturation": round(forehead_saturation, 2),
+            "shiny_percentage": round(shiny_percentage, 2),
+            "oiliness_score": round(oiliness_score, 1),
+            "oiliness_level": oiliness_level,
+            "dryness_score": round(dryness_score, 1),
+            "dryness_level": dryness_level,
+            "texture_score": round(texture_score, 1),
+            "texture_level": texture_level,
+            "redness_score": round(redness_score, 1),
+            "redness_level": redness_level,
+            "pigmentation_score": round(pigmentation_score, 1),
+            "pigmentation_level": pigmentation_level,
+            "recommendations": skincare_plan["recommendations"],
+            "morning_routine": skincare_plan["morning_routine"],
+            "night_routine": skincare_plan["night_routine"],
+            "recommended_ingredients": skincare_plan["recommended_ingredients"],
+            "product_recommendations": skincare_plan.get("product_recommendations", []),
+            "things_to_avoid": skincare_plan.get("things_to_avoid", []),
+            "possible_causes": skincare_plan.get("possible_causes", []),
+            "lifestyle_suggestions": skincare_plan.get("lifestyle_suggestions", [])
+        }
+
+    # =====================================================
+    # 2. SECONDARY / FALLBACK ENGINE: OPENCV COMPUTER VISION
+    # =====================================================
+    print("Skin Analysis AI: AI Vision unavailable. Engaging OpenCV Computer Vision fallback.")
     face_box = None
 
     # Helper: Multi-scale & Multi-rotation Haar Detection
@@ -306,7 +455,6 @@ def analyze_skin_image(image_path, output_dir=None):
         if not cascades:
             return None
 
-        # 1. Try upright standard scale
         for c in cascades:
             try:
                 faces = c.detectMultiScale(
@@ -320,7 +468,6 @@ def analyze_skin_image(image_path, output_dir=None):
             except Exception:
                 pass
 
-        # 2. Try rotation angles for tilted head / lying down poses (+/-15, +/-25, +/-35 deg)
         center_pt = (w_i // 2, h_i // 2)
         for angle in [15, -15, 25, -25, 35, -35, 45, -45]:
             try:
@@ -335,7 +482,6 @@ def analyze_skin_image(image_path, output_dir=None):
                     )
                     if len(faces) > 0:
                         bx, by, bw, bh = max(faces, key=lambda b: b[2] * b[3])
-                        # Un-rotate center back to original frame
                         box_center_rot = np.array([bx + bw / 2.0, by + bh / 2.0, 1.0])
                         M_inv = cv2.getRotationMatrix2D(center_pt, -angle, 1.0)
                         orig_center = M_inv.dot(box_center_rot)
@@ -351,7 +497,7 @@ def analyze_skin_image(image_path, output_dir=None):
 
     face_box = detect_face_multiscale(gray_full, w_img, h_img)
 
-    # 3. Robust Skin Contour & Cluster Segmentation Fallback
+    # 3. Robust Skin Contour Segmentation Fallback
     full_skin_mask = get_skin_mask(image)
     skin_pixels_total = np.count_nonzero(full_skin_mask)
     total_img_pixels = max(1, h_img * w_img)
@@ -359,7 +505,6 @@ def analyze_skin_image(image_path, output_dir=None):
 
     if face_box is None and skin_ratio_full >= 0.03:
         try:
-            # Focus on upper 85% of frame (face is above torso/shoulders)
             upper_mask = full_skin_mask.copy()
             upper_mask[int(h_img * 0.85):, :] = 0
             contours, _ = cv2.findContours(upper_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -375,12 +520,10 @@ def analyze_skin_image(image_path, output_dir=None):
             if valid_candidates:
                 valid_candidates.sort(key=lambda x: x[4], reverse=True)
                 best_bx, best_by, best_bw, best_bh, _ = valid_candidates[0]
-                # Clamp height to natural face aspect if neck is included
                 if best_bh > best_bw * 1.35:
                     best_bh = int(best_bw * 1.35)
                 face_box = (best_bx, best_by, best_bw, min(h_img - best_by, best_bh))
             else:
-                # Skin centroid adaptive window
                 M = cv2.moments(upper_mask)
                 if M["m00"] > 0:
                     cX = int(M["m10"] / M["m00"])
@@ -393,19 +536,13 @@ def analyze_skin_image(image_path, output_dir=None):
         except Exception as ex:
             print(f"Skin contour localization note: {ex}")
 
-    # 4. Final Adaptive Central Facial Crop Fallback if human skin is present
-    if face_box is None and skin_ratio_full >= 0.04:
-        crop_w = int(w_img * 0.65)
-        crop_h = int(h_img * 0.65)
-        crop_x = max(0, (w_img - crop_w) // 2)
-        crop_y = max(0, int((h_img - crop_h) * 0.35))
-        face_box = (crop_x, crop_y, crop_w, crop_h)
-
+    # 4. Adaptive Center Selfie Window Fallback
     if face_box is None:
-        return {
-            "success": False,
-            "message": "No face detected in the frame. Please look directly at the camera with your face clearly centered."
-        }
+        crop_w = int(w_img * 0.68)
+        crop_h = int(h_img * 0.72)
+        crop_x = max(0, (w_img - crop_w) // 2)
+        crop_y = max(0, int((h_img - crop_h) * 0.25))
+        face_box = (crop_x, crop_y, crop_w, crop_h)
 
     x, y, w, h = face_box
     face_raw = image[y:y + h, x:x + w]
@@ -414,11 +551,18 @@ def analyze_skin_image(image_path, output_dir=None):
     # Verify skin tone presence (permissive threshold for low-lighting or tilted poses)
     face_skin_mask = get_skin_mask(face_raw)
     skin_ratio = float(np.count_nonzero(face_skin_mask)) / float(max(1, face_w * face_h))
-    if skin_ratio < 0.03 and skin_ratio_full < 0.04:
+
+    # If skin tone mask is sparse due to low light or webcam color balance,
+    # supply an adaptive central elliptical face mask so CV fallback metrics proceed smoothly
+    if skin_ratio < 0.01 and skin_ratio_full < 0.015:
         return {
             "success": False,
             "message": "No skin tones detected in the face frame. Please ensure your face is clearly visible."
         }
+
+    if skin_ratio < 0.03:
+        face_skin_mask = np.zeros((face_h, face_w), dtype=np.uint8)
+        cv2.ellipse(face_skin_mask, (face_w // 2, face_h // 2), (int(face_w * 0.38), int(face_h * 0.45)), 0, 0, 360, 255, -1)
 
     # =====================================================
     # COLOR CONSTANCY & ILLUMINATION NORMALIZATION
