@@ -582,12 +582,14 @@ def get_ai_recommendations(
     clinically formulated, highly personalized active ingredients and product recommendations.
     Enforces hybrid image lookup and Nepal-accessible buy links.
     """
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    nvidia_key = os.environ.get("NVIDIA_API_KEY", "").strip()
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not openrouter_key and api_key.startswith("sk-or-"):
         openrouter_key = api_key
 
-    if not openrouter_key and not api_key:
+    if not openai_key and not nvidia_key and not openrouter_key and not api_key:
         return None
 
     prompt = (
@@ -628,11 +630,101 @@ def get_ai_recommendations(
         f"}}"
     )
 
+    def _parse_routine_json(raw_text):
+        clean_text = raw_text.strip()
+        if "```json" in clean_text:
+            clean_text = clean_text.split("```json", 1)[1].split("```", 1)[0].strip()
+        elif "```" in clean_text:
+            clean_text = clean_text.split("```", 1)[1].split("```", 1)[0].strip()
+        start_idx = clean_text.find("{")
+        end_idx = clean_text.rfind("}")
+        if start_idx != -1 and end_idx != -1:
+            clean_text = clean_text[start_idx:end_idx+1]
+        try:
+            return json.loads(clean_text)
+        except Exception:
+            for patch in ["}", "]}", '"]}', '"}]}', '"}}', '"]}}']:
+                try:
+                    return json.loads(clean_text + patch)
+                except Exception:
+                    pass
+            lines = clean_text.splitlines()
+            for k in range(len(lines)-1, max(0, len(lines)-10), -1):
+                sub = "\n".join(lines[:k]).rstrip(", ")
+                for patch in ["}", "]}", '"]}', '"}]}', '"}}', '"]}}']:
+                    try:
+                        return json.loads(sub + patch)
+                    except Exception:
+                        pass
+            return json.loads(clean_text)
+
     ai_data = None
     used_model_name = ""
 
-    # 1. Primary: OpenRouter (Gemini 3.5 Flash Lite / 3.7 Flash)
-    if openrouter_key:
+    # 1. Primary: OpenAI (gpt-4o-mini, fast, cost-effective structured JSON)
+    if openai_key:
+        try:
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "You are an expert cosmetic dermatologist. Return strictly a valid JSON object matching the requested schema without markdown fences."},
+                    {"role": "user", "content": prompt}
+                ],
+                "response_format": {"type": "json_object"},
+                "max_tokens": 950,
+                "temperature": 0.2
+            }
+            req = urllib.request.Request(
+                "https://api.openai.com/v1/chat/completions",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {openai_key}"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=12) as response:
+                resp_body = json.loads(response.read().decode("utf-8"))
+                candidate_text = resp_body["choices"][0]["message"]["content"]
+                if candidate_text:
+                    ai_data = _parse_routine_json(candidate_text)
+                    used_model_name = "openai/gpt-4o-mini"
+                    print("Skin Analysis AI: Generated recommendations via OpenAI (gpt-4o-mini).")
+        except Exception as oaiex:
+            print(f"OpenAI recommendations note: {oaiex}")
+
+    # 2. Secondary: NVIDIA NIM (meta/llama-3.2-11b-vision-instruct)
+    if not ai_data and nvidia_key:
+        try:
+            payload = {
+                "model": "meta/llama-3.2-11b-vision-instruct",
+                "messages": [
+                    {"role": "system", "content": "You are an expert cosmetic dermatologist. Return strictly a valid JSON object matching the requested schema without markdown fences."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 700,
+                "temperature": 0.2
+            }
+            req = urllib.request.Request(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {nvidia_key}"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=15) as response:
+                resp_body = json.loads(response.read().decode("utf-8"))
+                candidate_text = resp_body["choices"][0]["message"]["content"]
+                if candidate_text:
+                    ai_data = _parse_routine_json(candidate_text)
+                    used_model_name = "nvidia/meta/llama-3.2-11b-vision-instruct"
+                    print("Skin Analysis AI: Generated recommendations via NVIDIA NIM (meta/llama-3.2-11b-vision-instruct).")
+        except Exception as nvex:
+            print(f"NVIDIA NIM recommendations note: {nvex}")
+
+    # 2. Secondary: OpenRouter (Gemini 3.5 Flash Lite / 3.7 Flash)
+    if not ai_data and openrouter_key:
         or_models = [
             "google/gemini-3.5-flash-lite",
             "google/gemini-3.7-flash",
@@ -644,7 +736,7 @@ def get_ai_recommendations(
                     "model": model_name,
                     "messages": [{"role": "user", "content": prompt}],
                     "response_format": {"type": "json_object"},
-                    "max_tokens": 1500,
+                    "max_tokens": 1200,
                     "temperature": 0.3
                 }
                 req = urllib.request.Request(
@@ -657,7 +749,7 @@ def get_ai_recommendations(
                         "X-Title": "Skin Analysis AI"
                     }
                 )
-                with urllib.request.urlopen(req, timeout=25) as response:
+                with urllib.request.urlopen(req, timeout=20) as response:
                     resp_body = json.loads(response.read().decode("utf-8"))
                     candidate_text = resp_body["choices"][0]["message"]["content"].strip()
                     if candidate_text.startswith("```"):
@@ -670,6 +762,8 @@ def get_ai_recommendations(
                     break
             except Exception as ex:
                 print(f"OpenRouter recommendations {model_name} note: {ex}")
+                if "402" in str(ex):
+                    break
                 continue
 
     # 2. Secondary: Google Gemini REST API (if not handled by OpenRouter)

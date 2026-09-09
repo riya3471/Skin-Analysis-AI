@@ -64,26 +64,41 @@ def analyze_with_gemini_vision(image_path):
     Uses OpenRouter Multimodal AI Vision (Gemini) as primary face detector and biomarker analyst.
     Returns structured JSON with face detection status, normalized face bounding box, and dermatological biomarkers.
     """
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    nvidia_key = os.environ.get("NVIDIA_API_KEY", "").strip()
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not openrouter_key and api_key.startswith("sk-or-"):
         openrouter_key = api_key
 
-    if not openrouter_key and not api_key:
+    if not openai_key and not nvidia_key and not openrouter_key and not api_key:
         return None
 
     try:
-        with open(image_path, "rb") as img_file:
-            base64_data = base64.b64encode(img_file.read()).decode("utf-8")
+        # Pre-resize image to max 640px before encoding for instant sub-3s cloud vision inference
+        img_bgr = cv2.imread(image_path)
+        if img_bgr is not None:
+            hi, wi = img_bgr.shape[:2]
+            scale = 512.0 / max(hi, wi) if max(hi, wi) > 512 else 1.0
+            if scale < 1.0:
+                img_small = cv2.resize(img_bgr, (int(wi * scale), int(hi * scale)), interpolation=cv2.INTER_AREA)
+            else:
+                img_small = img_bgr
+            _, buf = cv2.imencode(".jpg", img_small, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            base64_data = base64.b64encode(buf).decode("utf-8")
+        else:
+            with open(image_path, "rb") as img_file:
+                base64_data = base64.b64encode(img_file.read()).decode("utf-8")
 
         prompt = (
-            "You are an expert dermatological Computer Vision AI. Inspect this uploaded image.\n"
-            "Task:\n"
-            "1. Determine if a clear human face is present and suitable for facial skin analysis.\n"
-            "2. If no face is present (e.g., covered lens, blank background, pet, non-human object), set is_face_detected to false and explain why in rejection_reason.\n"
-            "3. If a face is present, set is_face_detected to true, and provide precise normalized bounding box coordinates [ymin, xmin, ymax, xmax] as integers between 0 and 1000 tightly surrounding the head/face.\n"
-            "4. Provide a qualitative clinical description of the skin in overall_condition (e.g., 'Hydrated & Balanced', 'Mild T-Zone Shine', 'Dehydrated Skin Barrier', 'Erythema & Sensitivity').\n\n"
-            "Strictly return a JSON object with this exact structure (no markdown fences, just pure JSON):\n"
+            "You are a strict dermatological facial verification and biomarker AI.\n"
+            "CRITICAL INSTRUCTIONS:\n"
+            "1. FACE VERIFICATION: Inspect whether this image contains a clear, real HUMAN FACE suitable for facial skin analysis.\n"
+            "   - If the image contains a real human face (e.g. front portrait, selfie, webcam capture, angled pose with visible forehead/cheeks), set is_face_detected to true.\n"
+            "   - If the image contains NO human face (e.g. animals, pets, cars, food, clothing, nature/landscape, furniture, documents, hand/foot/body parts without a face, cartoons, or non-human objects), set is_face_detected to false and provide rejection_reason: 'Only human faces are accepted. Please upload or scan a clear front-facing portrait of your face.'\n"
+            "2. FACE BOUNDING BOX: If is_face_detected is true, provide normalized coordinates [ymin, xmin, ymax, xmax] as integers between 0 and 1000 tightly framing the human face from forehead/hairline to chin.\n"
+            "3. OVERALL CONDITION: If is_face_detected is true, provide a concise 3-5 word clinical description in overall_condition (e.g., 'Normal Skin', 'Mild T-Zone Shine', 'Balanced Barrier', 'Dehydrated Barrier', 'Erythema & Sensitivity').\n\n"
+            "Strictly return a JSON object matching this schema:\n"
             "{\n"
             '  "is_face_detected": true,\n'
             '  "rejection_reason": null,\n'
@@ -92,7 +107,108 @@ def analyze_with_gemini_vision(image_path):
             "}"
         )
 
-        # 1. Primary: OpenRouter AI Vision (Gemini 3.5 Flash Lite / 3.7 Flash)
+        def _parse_ai_json(text_content):
+            clean_text = str(text_content or "").strip()
+            if "```json" in clean_text:
+                clean_text = clean_text.split("```json", 1)[1].split("```", 1)[0].strip()
+            elif "```" in clean_text:
+                clean_text = clean_text.split("```", 1)[1].split("```", 1)[0].strip()
+            start_i = clean_text.find("{")
+            end_i = clean_text.rfind("}")
+            if start_i != -1 and end_i > start_i:
+                clean_text = clean_text[start_i:end_i+1]
+            try:
+                return json.loads(clean_text)
+            except Exception:
+                for patch in ["}", '"}', '"]}', '"}]}', '"}}']:
+                    try:
+                        return json.loads(clean_text + patch)
+                    except Exception:
+                        pass
+                raise
+
+        # 1. Primary: OpenAI Vision (gpt-4o-mini with low detail for fast, minimal-token cost)
+        if openai_key:
+            try:
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{base64_data}",
+                                        "detail": "low"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "max_tokens": 180,
+                    "temperature": 0.1
+                }
+                req = urllib.request.Request(
+                    "https://api.openai.com/v1/chat/completions",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {openai_key}"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    resp_body = json.loads(response.read().decode("utf-8"))
+                    candidate_text = resp_body["choices"][0]["message"]["content"]
+                    ai_data = _parse_ai_json(candidate_text)
+                    print("Skin Analysis AI: Successfully processed facial scan via OpenAI (gpt-4o-mini).")
+                    return ai_data
+            except Exception as oaiex:
+                print(f"OpenAI Vision note: {oaiex}")
+
+        # 2. Secondary: NVIDIA NIM Multimodal Vision (meta/llama-3.2-11b-vision-instruct)
+        if nvidia_key:
+            nv_vision_models = [
+                "meta/llama-3.2-11b-vision-instruct"
+            ]
+            for nv_model in nv_vision_models:
+                try:
+                    payload = {
+                        "model": nv_model,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_data}"}}
+                                ]
+                            }
+                        ],
+                        "max_tokens": 300,
+                        "temperature": 0.1
+                    }
+                    req = urllib.request.Request(
+                        "https://integrate.api.nvidia.com/v1/chat/completions",
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "Authorization": f"Bearer {nvidia_key}"
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=25) as response:
+                        resp_body = json.loads(response.read().decode("utf-8"))
+                        candidate_text = resp_body["choices"][0]["message"]["content"]
+                        ai_data = _parse_ai_json(candidate_text)
+                        print(f"Skin Analysis AI: Successfully processed facial scan via NVIDIA NIM ({nv_model}).")
+                        return ai_data
+                except Exception as nvex:
+                    print(f"NVIDIA NIM Vision ({nv_model}) note: {nvex}")
+                    continue
+
+        # 2. Secondary: OpenRouter AI Vision (Gemini 3.5 Flash Lite / 3.7 Flash)
         if openrouter_key:
             or_models = [
                 "google/gemini-3.5-flash-lite",
@@ -139,6 +255,8 @@ def analyze_with_gemini_vision(image_path):
                         return ai_data
                 except Exception as ex:
                     print(f"OpenRouter Vision model {model_name} note: {ex}")
+                    if "402" in str(ex):
+                        break
                     continue
 
         # 2. Secondary: Direct Google Gemini REST API (if non-OpenRouter key configured)
@@ -264,28 +382,28 @@ def analyze_skin_image(image_path, output_dir=None):
         if not ai_data.get("is_face_detected", True):
             return {
                 "success": False,
-                "message": ai_data.get("rejection_reason") or "No face detected in the frame. Please look directly at the camera with your face clearly centered."
+                "message": ai_data.get("rejection_reason") or "Only human faces are accepted. Please upload or scan a clear front-facing portrait of your face."
             }
-
-        clinical_condition = ai_data.get("overall_condition")
-        raw_box = ai_data.get("face_box")
-        if isinstance(raw_box, (list, tuple)) and len(raw_box) == 4:
-            try:
-                ymin, xmin, ymax, xmax = [float(v) for v in raw_box]
-                y1 = int(max(0, min(h_img, (ymin / 1000.0) * h_img)))
-                y2 = int(max(0, min(h_img, (ymax / 1000.0) * h_img)))
-                x1 = int(max(0, min(w_img, (xmin / 1000.0) * w_img)))
-                x2 = int(max(0, min(w_img, (xmax / 1000.0) * w_img)))
-                bw = x2 - x1
-                bh = y2 - y1
-                # Enforce anatomical head proportion: height should not exceed 1.30x width
-                if bh > int(bw * 1.30):
-                    bh = int(bw * 1.30)
-                if bw > 40 and bh > 40:
-                    face_box = (x1, y1, bw, bh)
-                    engine_used = "ai_vision"
-            except Exception:
-                face_box = None
+        else:
+            clinical_condition = ai_data.get("overall_condition")
+            raw_box = ai_data.get("face_box")
+            if isinstance(raw_box, (list, tuple)) and len(raw_box) == 4:
+                try:
+                    ymin, xmin, ymax, xmax = [float(v) for v in raw_box]
+                    y1 = int(max(0, min(h_img, (ymin / 1000.0) * h_img)))
+                    y2 = int(max(0, min(h_img, (ymax / 1000.0) * h_img)))
+                    x1 = int(max(0, min(w_img, (xmin / 1000.0) * w_img)))
+                    x2 = int(max(0, min(w_img, (xmax / 1000.0) * w_img)))
+                    bw = x2 - x1
+                    bh = y2 - y1
+                    # Enforce anatomical head proportion: height should not exceed 1.30x width
+                    if bh > int(bw * 1.30):
+                        bh = int(bw * 1.30)
+                    if bw > 40 and bh > 40:
+                        face_box = (x1, y1, bw, bh)
+                        engine_used = "ai_vision"
+                except Exception:
+                    face_box = None
 
     # Fallback: Multi-scale & Multi-rotation Haar cascades
     if face_box is None:
@@ -357,25 +475,24 @@ def analyze_skin_image(image_path, output_dir=None):
 
         face_box = detect_face_multiscale(gray_full, w_img, h_img)
 
-    # 3. Robust Skin Contour Segmentation Fallback
+    # 3. Robust Skin Contour Segmentation Fallback (only if AI is offline and skin ratio is significant)
     full_skin_mask = get_skin_mask(image)
     skin_pixels_total = np.count_nonzero(full_skin_mask)
     total_img_pixels = max(1, h_img * w_img)
     skin_ratio_full = float(skin_pixels_total) / float(total_img_pixels)
 
-    if face_box is None and skin_ratio_full >= 0.02:
+    if face_box is None and skin_ratio_full >= 0.08:
         try:
             upper_mask = full_skin_mask.copy()
-            upper_mask[int(h_img * 0.85):, :] = 0
             contours, _ = cv2.findContours(upper_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
             valid_candidates = []
             for c in contours:
                 area = cv2.contourArea(c)
-                if area > (h_img * w_img * 0.02):
+                if area > (h_img * w_img * 0.04):
                     bx, by, bw, bh = cv2.boundingRect(c)
                     aspect = bh / max(1, bw)
-                    if 0.4 <= aspect <= 3.0:
+                    if 0.6 <= aspect <= 2.2:
                         valid_candidates.append((bx, by, bw, bh, area))
             if valid_candidates:
                 valid_candidates.sort(key=lambda x: x[4], reverse=True)
@@ -383,46 +500,29 @@ def analyze_skin_image(image_path, output_dir=None):
                 if best_bh > best_bw * 1.30:
                     best_bh = int(best_bw * 1.30)
                 face_box = (best_bx, best_by, best_bw, min(h_img - best_by, best_bh))
-            else:
-                M = cv2.moments(upper_mask)
-                if M["m00"] > 0:
-                    cX = int(M["m10"] / M["m00"])
-                    cY = int(M["m01"] / M["m00"])
-                    crop_w = int(w_img * 0.58)
-                    crop_h = int(h_img * 0.62)
-                    crop_x = max(0, min(w_img - crop_w, cX - crop_w // 2))
-                    crop_y = max(0, min(h_img - crop_h, cY - crop_h // 2))
-                    face_box = (crop_x, crop_y, crop_w, crop_h)
         except Exception as ex:
             print(f"Skin contour localization note: {ex}")
 
-    # 4. Adaptive Center Selfie Window Fallback
+    # Strict rejection: If no human face was found by AI, Haar cascades, or verified head contours, REJECT.
     if face_box is None:
-        crop_w = int(w_img * 0.68)
-        crop_h = int(h_img * 0.72)
-        crop_x = max(0, (w_img - crop_w) // 2)
-        crop_y = max(0, int((h_img - crop_h) * 0.25))
-        face_box = (crop_x, crop_y, crop_w, crop_h)
+        return {
+            "success": False,
+            "message": "Only human faces are accepted. No human face was detected in the image. Please position your face clearly in good lighting."
+        }
 
     x, y, w, h = face_box
     face_raw = image[y:y + h, x:x + w]
     face_h, face_w = face_raw.shape[:2]
 
-    # Verify skin tone presence (permissive threshold for low-lighting or tilted poses)
+    # Verify human skin presence inside the localized facial frame
     face_skin_mask = get_skin_mask(face_raw)
     skin_ratio = float(np.count_nonzero(face_skin_mask)) / float(max(1, face_w * face_h))
 
-    # If skin tone mask is sparse due to low light or webcam color balance,
-    # supply an adaptive central elliptical face mask so CV fallback metrics proceed smoothly
-    if skin_ratio < 0.005 and skin_ratio_full < 0.008:
+    if skin_ratio < 0.10:
         return {
             "success": False,
-            "message": "No skin tones detected in the face frame. Please ensure your face is clearly visible."
+            "message": "Only human faces are accepted. The detected region does not contain sufficient human skin tones."
         }
-
-    if skin_ratio < 0.05:
-        face_skin_mask = np.zeros((face_h, face_w), dtype=np.uint8)
-        cv2.ellipse(face_skin_mask, (face_w // 2, face_h // 2), (int(face_w * 0.38), int(face_h * 0.45)), 0, 0, 360, 255, -1)
 
     # =====================================================
     # COLOR CONSTANCY & ILLUMINATION NORMALIZATION

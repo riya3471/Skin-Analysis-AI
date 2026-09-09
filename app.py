@@ -711,12 +711,14 @@ def api_chat():
             f"- Caution Ingredients: {avoid_summary}\n"
         )
 
+        openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+        nvidia_key = os.environ.get("NVIDIA_API_KEY", "").strip()
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         api_key = os.environ.get("GEMINI_API_KEY", "").strip()
         if not openrouter_key and api_key.startswith("sk-or-"):
             openrouter_key = api_key
 
-        # Prepare OpenRouter messages
+        # Prepare OpenRouter / NVIDIA messages
         or_messages = [{"role": "system", "content": system_instruction}]
         for turn in history[-6:]:
             r = "user" if turn.get("role") == "user" else "assistant"
@@ -752,7 +754,97 @@ def api_chat():
                 used_model = "local-fallback"
                 stream_success = False
 
-                if openrouter_key:
+                # 1. Primary: OpenAI Streaming (gpt-4o-mini, fast and cost-effective)
+                if openai_key:
+                    try:
+                        payload = {
+                            "model": "gpt-4o-mini",
+                            "messages": or_messages,
+                            "max_tokens": 800,
+                            "temperature": 0.4,
+                            "stream": True
+                        }
+                        req = urllib.request.Request(
+                            "https://api.openai.com/v1/chat/completions",
+                            data=json.dumps(payload).encode("utf-8"),
+                            headers={
+                                "Content-Type": "application/json",
+                                "Authorization": f"Bearer {openai_key}"
+                            }
+                        )
+                        with urllib.request.urlopen(req, timeout=15) as resp:
+                            for line in resp:
+                                line_str = line.decode("utf-8").strip()
+                                if line_str.startswith("data: "):
+                                    data_str = line_str[6:].strip()
+                                    if data_str == "[DONE]":
+                                        break
+                                    try:
+                                        chunk = json.loads(data_str)
+                                        delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                        if delta:
+                                            full_reply.append(delta)
+                                            stream_success = True
+                                            yield f"data: {json.dumps({'delta': delta})}\n\n"
+                                    except Exception:
+                                        pass
+                            if stream_success:
+                                used_model = "openai/gpt-4o-mini"
+                    except Exception as oaiex:
+                        print(f"OpenAI chat stream note: {oaiex}")
+
+                # 2. Secondary: NVIDIA NIM Streaming
+                if not stream_success and nvidia_key:
+                    nv_chat_models = [
+                        ("meta/llama-3.2-11b-vision-instruct", 35),
+                        ("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", 30),
+                        ("moonshotai/kimi-k3", 10),
+                    ]
+                    for model_name, to_sec in nv_chat_models:
+                        try:
+                            payload = {
+                                "model": model_name,
+                                "messages": or_messages,
+                                "max_tokens": 2048,
+                                "temperature": 0.4,
+                                "stream": True,
+                            }
+                            req = urllib.request.Request(
+                                "https://integrate.api.nvidia.com/v1/chat/completions",
+                                data=json.dumps(payload).encode("utf-8"),
+                                headers={
+                                    "Content-Type": "application/json",
+                                    "Accept": "text/event-stream",
+                                    "Authorization": f"Bearer {nvidia_key}"
+                                }
+                            )
+                            with urllib.request.urlopen(req, timeout=to_sec) as resp:
+                                for line in resp:
+                                    line_str = line.decode("utf-8").strip()
+                                    if line_str.startswith("data: "):
+                                        data_str = line_str[6:].strip()
+                                        if data_str == "[DONE]":
+                                            break
+                                        try:
+                                            chunk = json.loads(data_str)
+                                            delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                            if delta:
+                                                full_reply.append(delta)
+                                                stream_success = True
+                                                yield f"data: {json.dumps({'delta': delta})}\n\n"
+                                        except Exception:
+                                            pass
+                                if stream_success:
+                                    used_model = f"nvidia/{model_name}"
+                                    break
+                        except Exception as nvex:
+                            print(f"NVIDIA NIM stream {model_name} note: {nvex}")
+                            if stream_success:
+                                break
+                            continue
+
+                # 2. Secondary: OpenRouter Streaming
+                if not stream_success and openrouter_key:
                     or_models = [
                         "google/gemini-3.7-flash",
                         "google/gemini-3.5-flash-lite",
@@ -839,7 +931,65 @@ def api_chat():
         reply_text = None
         used_model = "local-fallback"
 
-        if openrouter_key:
+        # 1. Primary: OpenAI Chat (gpt-4o-mini)
+        if openai_key:
+            try:
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": or_messages,
+                    "max_tokens": 800,
+                    "temperature": 0.4
+                }
+                req = urllib.request.Request(
+                    "https://api.openai.com/v1/chat/completions",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {openai_key}"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    resp_body = json.loads(response.read().decode("utf-8"))
+                    reply_text = resp_body["choices"][0]["message"]["content"].strip()
+                    used_model = "openai/gpt-4o-mini"
+            except Exception as oaiex:
+                print(f"OpenAI chat note: {oaiex}")
+
+        # 2. Secondary: NVIDIA NIM Chat
+        if not reply_text and nvidia_key:
+            nv_chat_models = [
+                ("meta/llama-3.2-11b-vision-instruct", 35),
+                ("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", 30),
+                ("moonshotai/kimi-k3", 10),
+            ]
+            for model_name, to_sec in nv_chat_models:
+                try:
+                    payload = {
+                        "model": model_name,
+                        "messages": or_messages,
+                        "max_tokens": 2048,
+                        "temperature": 0.4
+                    }
+                    req = urllib.request.Request(
+                        "https://integrate.api.nvidia.com/v1/chat/completions",
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "Authorization": f"Bearer {nvidia_key}"
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=to_sec) as response:
+                        resp_body = json.loads(response.read().decode("utf-8"))
+                        reply_text = resp_body["choices"][0]["message"]["content"].strip()
+                        used_model = f"nvidia/{model_name}"
+                        break
+                except Exception as nvex:
+                    print(f"NVIDIA NIM chat {model_name} note: {nvex}")
+                    continue
+
+        # 2. Secondary: OpenRouter Chat
+        if not reply_text and openrouter_key:
             or_models = [
                 "google/gemini-3.7-flash",
                 "google/gemini-3.5-flash-lite",
