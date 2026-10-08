@@ -14,8 +14,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DB_PATH = os.path.join(BASE_DIR, "skin_analysis.db")
 
 
+_postgres_available = None  # None = untried, True = working, False = failed/unavailable
+
+
 def is_postgres():
-    """Check if PostgreSQL/Supabase database URL is configured."""
+    """Check if PostgreSQL/Supabase database URL is configured and available."""
+    global _postgres_available
+    if _postgres_available is False:
+        return False
     url = os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL")
     return bool(url and (url.startswith("postgres://") or url.startswith("postgresql://")))
 
@@ -45,18 +51,26 @@ except ImportError:
 
 
 def create_raw_connection():
-    """Create a new raw connection to PostgreSQL or SQLite."""
+    """Create a new raw connection to PostgreSQL or fallback to SQLite."""
+    global _postgres_available
     if is_postgres():
         if psycopg2 is None:
-            raise RuntimeError("psycopg2-binary is required for PostgreSQL connections.")
-        url = get_db_url()
-        return psycopg2.connect(url, cursor_factory=RealDictCursor, sslmode="require")
-    else:
-        db_path = get_db_path()
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON;")
-        return conn
+            _postgres_available = False
+        else:
+            try:
+                url = get_db_url()
+                conn = psycopg2.connect(url, cursor_factory=RealDictCursor, sslmode="require", connect_timeout=3)
+                _postgres_available = True
+                return conn
+            except Exception as e:
+                print(f"Supabase/PostgreSQL connection failed ({e}). Gracefully falling back to local SQLite.")
+                _postgres_available = False
+
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn
 
 
 def get_db_connection():
@@ -186,13 +200,12 @@ def parse_datetime_to_ist(val):
 def init_db(schema_file=None):
     """Initialize database tables and views from schema file and seed data."""
     if is_postgres():
-        # Tables on Supabase are created using supabase_schema.sql.
-        # Ensure initial seed data exists if table is empty.
         try:
             seed_initial_data()
+            if is_postgres():
+                return
         except Exception as e:
             print(f"Supabase init check note: {e}")
-        return
 
     # SQLite fallback
     if schema_file is None:
