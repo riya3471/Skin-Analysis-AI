@@ -754,44 +754,46 @@ def api_chat():
                 used_model = "local-fallback"
                 stream_success = False
 
-                # 1. Primary: OpenAI Streaming (gpt-4o-mini, fast and cost-effective)
+                # 1. Primary: OpenAI Streaming (gpt-4o with cheaper gpt-4o-mini fallback)
                 if openai_key:
-                    try:
-                        payload = {
-                            "model": "gpt-4o-mini",
-                            "messages": or_messages,
-                            "max_tokens": 800,
-                            "temperature": 0.4,
-                            "stream": True
-                        }
-                        req = urllib.request.Request(
-                            "https://api.openai.com/v1/chat/completions",
-                            data=json.dumps(payload).encode("utf-8"),
-                            headers={
-                                "Content-Type": "application/json",
-                                "Authorization": f"Bearer {openai_key}"
+                    for oa_model in ["gpt-4o", "gpt-4o-mini"]:
+                        try:
+                            payload = {
+                                "model": oa_model,
+                                "messages": or_messages,
+                                "max_tokens": 800,
+                                "temperature": 0.4,
+                                "stream": True
                             }
-                        )
-                        with urllib.request.urlopen(req, timeout=15) as resp:
-                            for line in resp:
-                                line_str = line.decode("utf-8").strip()
-                                if line_str.startswith("data: "):
-                                    data_str = line_str[6:].strip()
-                                    if data_str == "[DONE]":
-                                        break
-                                    try:
-                                        chunk = json.loads(data_str)
-                                        delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                        if delta:
-                                            full_reply.append(delta)
-                                            stream_success = True
-                                            yield f"data: {json.dumps({'delta': delta})}\n\n"
-                                    except Exception:
-                                        pass
-                            if stream_success:
-                                used_model = "openai/gpt-4o-mini"
-                    except Exception as oaiex:
-                        print(f"OpenAI chat stream note: {oaiex}")
+                            req = urllib.request.Request(
+                                "https://api.openai.com/v1/chat/completions",
+                                data=json.dumps(payload).encode("utf-8"),
+                                headers={
+                                    "Content-Type": "application/json",
+                                    "Authorization": f"Bearer {openai_key}"
+                                }
+                            )
+                            with urllib.request.urlopen(req, timeout=15) as resp:
+                                for line in resp:
+                                    line_str = line.decode("utf-8").strip()
+                                    if line_str.startswith("data: "):
+                                        data_str = line_str[6:].strip()
+                                        if data_str == "[DONE]":
+                                            break
+                                        try:
+                                            chunk = json.loads(data_str)
+                                            delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                            if delta:
+                                                full_reply.append(delta)
+                                                stream_success = True
+                                                yield f"data: {json.dumps({'delta': delta})}\n\n"
+                                        except Exception:
+                                            pass
+                                if stream_success:
+                                    used_model = f"openai/{oa_model}"
+                                    break
+                        except Exception as oaiex:
+                            print(f"OpenAI chat stream ({oa_model}) note: {oaiex}")
 
                 # 2. Secondary: NVIDIA NIM Streaming
                 if not stream_success and nvidia_key:
@@ -931,29 +933,32 @@ def api_chat():
         reply_text = None
         used_model = "local-fallback"
 
-        # 1. Primary: OpenAI Chat (gpt-4o-mini)
+        # 1. Primary: OpenAI Chat (gpt-4o with cheaper gpt-4o-mini fallback)
         if openai_key:
-            try:
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": or_messages,
-                    "max_tokens": 800,
-                    "temperature": 0.4
-                }
-                req = urllib.request.Request(
-                    "https://api.openai.com/v1/chat/completions",
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {openai_key}"
+            for oa_model in ["gpt-4o", "gpt-4o-mini"]:
+                try:
+                    payload = {
+                        "model": oa_model,
+                        "messages": or_messages,
+                        "max_tokens": 800,
+                        "temperature": 0.4
                     }
-                )
-                with urllib.request.urlopen(req, timeout=12) as response:
-                    resp_body = json.loads(response.read().decode("utf-8"))
-                    reply_text = resp_body["choices"][0]["message"]["content"].strip()
-                    used_model = "openai/gpt-4o-mini"
-            except Exception as oaiex:
-                print(f"OpenAI chat note: {oaiex}")
+                    req = urllib.request.Request(
+                        "https://api.openai.com/v1/chat/completions",
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {openai_key}"
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=12) as response:
+                        resp_body = json.loads(response.read().decode("utf-8"))
+                        reply_text = resp_body["choices"][0]["message"]["content"].strip()
+                        used_model = f"openai/{oa_model}"
+                        if reply_text:
+                            break
+                except Exception as oaiex:
+                    print(f"OpenAI chat ({oa_model}) note: {oaiex}")
 
         # 2. Secondary: NVIDIA NIM Chat
         if not reply_text and nvidia_key:

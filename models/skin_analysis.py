@@ -127,46 +127,47 @@ def analyze_with_gemini_vision(image_path):
                         pass
                 raise
 
-        # 1. Primary: OpenAI Vision (gpt-4o-mini with low detail for fast, minimal-token cost)
+        # 1. Primary: OpenAI Vision (gpt-4o with cheaper gpt-4o-mini fallback)
         if openai_key:
-            try:
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": prompt},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{base64_data}",
-                                        "detail": "low"
+            for oa_model in ["gpt-4o", "gpt-4o-mini"]:
+                try:
+                    payload = {
+                        "model": oa_model,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt},
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/jpeg;base64,{base64_data}",
+                                            "detail": "low"
+                                        }
                                     }
-                                }
-                            ]
-                        }
-                    ],
-                    "response_format": {"type": "json_object"},
-                    "max_tokens": 180,
-                    "temperature": 0.1
-                }
-                req = urllib.request.Request(
-                    "https://api.openai.com/v1/chat/completions",
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {openai_key}"
+                                ]
+                            }
+                        ],
+                        "response_format": {"type": "json_object"},
+                        "max_tokens": 180,
+                        "temperature": 0.1
                     }
-                )
-                with urllib.request.urlopen(req, timeout=12) as response:
-                    resp_body = json.loads(response.read().decode("utf-8"))
-                    candidate_text = resp_body["choices"][0]["message"]["content"]
-                    ai_data = _parse_ai_json(candidate_text)
-                    print("Skin Analysis AI: Successfully processed facial scan via OpenAI (gpt-4o-mini).")
-                    return ai_data
-            except Exception as oaiex:
-                print(f"OpenAI Vision note: {oaiex}")
+                    req = urllib.request.Request(
+                        "https://api.openai.com/v1/chat/completions",
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {openai_key}"
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=12) as response:
+                        resp_body = json.loads(response.read().decode("utf-8"))
+                        candidate_text = resp_body["choices"][0]["message"]["content"]
+                        ai_data = _parse_ai_json(candidate_text)
+                        print(f"Skin Analysis AI: Successfully processed facial scan via OpenAI ({oa_model}).")
+                        return ai_data
+                except Exception as oaiex:
+                    print(f"OpenAI Vision ({oa_model}) note: {oaiex}")
 
         # 2. Secondary: NVIDIA NIM Multimodal Vision (meta/llama-3.2-11b-vision-instruct)
         if nvidia_key:

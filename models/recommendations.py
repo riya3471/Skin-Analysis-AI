@@ -661,36 +661,38 @@ def get_ai_recommendations(
     ai_data = None
     used_model_name = ""
 
-    # 1. Primary: OpenAI (gpt-4o-mini, fast, cost-effective structured JSON)
+    # 1. Primary: OpenAI (gpt-4o with cheaper gpt-4o-mini fallback)
     if openai_key:
-        try:
-            payload = {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "system", "content": "You are an expert cosmetic dermatologist. Return strictly a valid JSON object matching the requested schema without markdown fences."},
-                    {"role": "user", "content": prompt}
-                ],
-                "response_format": {"type": "json_object"},
-                "max_tokens": 950,
-                "temperature": 0.2
-            }
-            req = urllib.request.Request(
-                "https://api.openai.com/v1/chat/completions",
-                data=json.dumps(payload).encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {openai_key}"
+        for oa_model in ["gpt-4o", "gpt-4o-mini"]:
+            try:
+                payload = {
+                    "model": oa_model,
+                    "messages": [
+                        {"role": "system", "content": "You are an expert cosmetic dermatologist. Return strictly a valid JSON object matching the requested schema without markdown fences."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "max_tokens": 950,
+                    "temperature": 0.2
                 }
-            )
-            with urllib.request.urlopen(req, timeout=12) as response:
-                resp_body = json.loads(response.read().decode("utf-8"))
-                candidate_text = resp_body["choices"][0]["message"]["content"]
-                if candidate_text:
-                    ai_data = _parse_routine_json(candidate_text)
-                    used_model_name = "openai/gpt-4o-mini"
-                    print("Skin Analysis AI: Generated recommendations via OpenAI (gpt-4o-mini).")
-        except Exception as oaiex:
-            print(f"OpenAI recommendations note: {oaiex}")
+                req = urllib.request.Request(
+                    "https://api.openai.com/v1/chat/completions",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {openai_key}"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    resp_body = json.loads(response.read().decode("utf-8"))
+                    candidate_text = resp_body["choices"][0]["message"]["content"]
+                    if candidate_text:
+                        ai_data = _parse_routine_json(candidate_text)
+                        used_model_name = f"openai/{oa_model}"
+                        print(f"Skin Analysis AI: Generated recommendations via OpenAI ({oa_model}).")
+                        break
+            except Exception as oaiex:
+                print(f"OpenAI recommendations ({oa_model}) note: {oaiex}")
 
     # 2. Secondary: NVIDIA NIM (meta/llama-3.2-11b-vision-instruct)
     if not ai_data and nvidia_key:
