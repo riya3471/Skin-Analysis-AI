@@ -39,17 +39,21 @@ def get_skin_mask(bgr_image):
     hsv = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
     mask_hsv1 = cv2.inRange(
         hsv,
-        np.array([0, 12, 35], dtype=np.uint8),
-        np.array([35, 255, 255], dtype=np.uint8)
+        np.array([0, 10, 30], dtype=np.uint8),
+        np.array([45, 255, 255], dtype=np.uint8)
     )
     mask_hsv2 = cv2.inRange(
         hsv,
-        np.array([168, 12, 35], dtype=np.uint8),
+        np.array([165, 10, 30], dtype=np.uint8),
         np.array([180, 255, 255], dtype=np.uint8)
     )
     mask_hsv = cv2.bitwise_or(mask_hsv1, mask_hsv2)
 
     combined = cv2.bitwise_and(mask_ycrcb, mask_hsv)
+    # If lighting/shadow causes HSV to be overly restrictive, use illumination-invariant YCrCb
+    if np.count_nonzero(combined) < (mask_ycrcb.size * 0.05):
+        combined = mask_ycrcb
+
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel, iterations=1)
     return combined
@@ -519,7 +523,11 @@ def analyze_skin_image(image_path, output_dir=None):
     face_skin_mask = get_skin_mask(face_raw)
     skin_ratio = float(np.count_nonzero(face_skin_mask)) / float(max(1, face_w * face_h))
 
-    if skin_ratio < 0.10:
+    # Calibrate accurately: When AI Vision (GPT-4o) has already confirmed a human face,
+    # require minimal presence (>= 4%) to tolerate room shadows, hair framing, and warm indoor bulbs;
+    # for classical CV fallback, maintain strict 8% threshold.
+    min_skin_threshold = 0.04 if engine_used == "ai_vision" else 0.08
+    if skin_ratio < min_skin_threshold:
         return {
             "success": False,
             "message": "Only human faces are accepted. The detected region does not contain sufficient human skin tones."
