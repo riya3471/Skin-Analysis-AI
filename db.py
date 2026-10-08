@@ -57,14 +57,24 @@ def create_raw_connection():
         if psycopg2 is None:
             _postgres_available = False
         else:
-            try:
-                url = get_db_url()
-                conn = psycopg2.connect(url, cursor_factory=RealDictCursor, sslmode="require", connect_timeout=3)
-                _postgres_available = True
-                return conn
-            except Exception as e:
-                print(f"Supabase/PostgreSQL connection failed ({e}). Gracefully falling back to local SQLite.")
-                _postgres_available = False
+            url = get_db_url()
+            candidate_urls = [url]
+            if ":6543/" in url:
+                candidate_urls.append(url.replace(":6543/", ":5432/"))
+            elif ":5432/" in url and "pooler.supabase.com" in url:
+                candidate_urls.append(url.replace(":5432/", ":6543/"))
+
+            last_err = None
+            for cand_url in candidate_urls:
+                try:
+                    conn = psycopg2.connect(cand_url, cursor_factory=RealDictCursor, sslmode="require", connect_timeout=4)
+                    _postgres_available = True
+                    return conn
+                except Exception as e:
+                    last_err = e
+
+            print(f"Supabase/PostgreSQL connection failed ({last_err}). Gracefully falling back to local SQLite.")
+            _postgres_available = False
 
     db_path = get_db_path()
     conn = sqlite3.connect(db_path)
