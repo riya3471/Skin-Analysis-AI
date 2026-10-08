@@ -95,35 +95,30 @@ def analyze_with_gemini_vision(image_path):
                 base64_data = base64.b64encode(img_file.read()).decode("utf-8")
 
         prompt = (
-            "You are a clinical-grade dermatological AI that performs two tasks: (A) verify if the image contains a human face, and (B) if yes, analyze visible skin conditions with accurate severity grading.\n\n"
+            "You are a clinical-grade dermatological AI that performs two tasks: (A) verify if the image contains a human face, and (B) if yes, analyze visible skin conditions.\n\n"
             "TASK A - IMAGE VERIFICATION:\n"
-            "- If the image contains a real human face (selfie, webcam, portrait, angled pose), set is_face_detected to true.\n"
-            "- If the image does NOT contain a human face, set is_face_detected to false. In rejection_reason, describe what the image actually shows (e.g., 'This appears to be a dog. Only human faces are accepted.', 'This is a landscape photo. Only human faces are accepted.').\n\n"
+            "- A human face in ANY orientation, angle, or setting (upright portrait, angled selfie, head tilted, reclining in bed or against a pillow, relaxed pose, partial torso/shoulders visible) IS FULLY VALID. As long as a real human face is visible, set is_face_detected to true.\n"
+            "- Only set is_face_detected to false if there is NO human face at all (e.g. an animal, pet, car, cartoon, food, paper document, blank/black image, or room background without a person). In rejection_reason, state what the object actually is (e.g. 'This appears to be a cat. Only human faces are accepted.').\n\n"
             "TASK B - SKIN CONDITION ANALYSIS (only if is_face_detected is true):\n"
-            "1. face_box: Normalized bounding box [ymin, xmin, ymax, xmax] as integers 0-1000 tightly framing forehead to chin.\n"
-            "2. overall_condition: A 3-6 word clinical summary (e.g., 'Mild Acne & Oily T-Zone', 'Clear Healthy Skin', 'Post-Inflammatory Hyperpigmentation').\n"
-            "3. detected_conditions: An array of visible skin issues found. For EACH condition provide:\n"
-            "   - name: condition name (e.g., 'Active Acne', 'Pimples', 'Acne Scars', 'Dark Spots', 'Blackheads', 'Whiteheads', 'Dark Circles', 'Fine Lines', 'Enlarged Pores', 'Redness/Rosacea', 'Uneven Skin Tone', 'Dry Patches', 'Oily Shine')\n"
-            "   - severity: one of 'mild', 'moderate', or 'severe'\n"
-            "   - location: where on the face (e.g., 'forehead', 'cheeks', 'chin', 'nose', 'T-zone', 'under-eye')\n"
-            "   If no visible issues are found, return an empty array [].\n"
-            "4. ai_scores: Your clinical assessment of the skin on a 0-100 scale for each biomarker:\n"
-            "   - oiliness (0=no oil, 100=extremely oily)\n"
-            "   - dryness (0=well hydrated, 100=severely dehydrated)\n"
-            "   - acne (0=clear, 100=severe cystic acne)\n"
-            "   - pigmentation (0=even tone, 100=severe hyperpigmentation)\n"
-            "   - redness (0=no redness, 100=severe erythema)\n"
-            "   - texture (0=perfectly smooth, 100=very rough/scarred)\n"
-            "5. clinical_summary: 1-2 sentence description of the person's skin state, mentioning specific problems found and brief advice. Example: 'Mild acne with a few active pimples on the forehead and chin. Recommend gentle salicylic acid cleanser and non-comedogenic moisturizer.'\n\n"
+            "1. face_box: Normalized bounding box [ymin, xmin, ymax, xmax] as integers 0-1000 tightly framing the human face from forehead/hairline to chin.\n"
+            "2. overall_condition: A concise 3-5 word clinical description (e.g., 'Clear Healthy Skin', 'Mild T-Zone Shine', 'Mild Active Acne', 'Post-Inflammatory Marks').\n"
+            "3. detected_conditions: List of visible skin concerns found (e.g., 'Active Acne', 'Pimples', 'Acne Scars', 'Dark Spots', 'Blackheads', 'Whiteheads', 'Redness/Rosacea', 'Enlarged Pores', 'Oily Shine', 'Dry Patches'). For each item provide:\n"
+            "   - name: condition name\n"
+            "   - severity: 'mild' | 'moderate' | 'severe'\n"
+            "   - location: 'forehead' | 'cheeks' | 'chin' | 'nose' | 'T-zone'\n"
+            "   If skin is clear with no notable problems, return an empty array [].\n"
+            "4. ai_scores: Estimate biomarker severity from 0 to 100 (0=none/clear, 100=extreme):\n"
+            "   - oiliness, dryness, acne, pigmentation, redness, texture\n"
+            "5. clinical_summary: 1-2 sentence dermatological assessment and brief advice.\n\n"
             "Return strictly a JSON object matching this schema:\n"
             "{\n"
             '  "is_face_detected": true,\n'
             '  "rejection_reason": null,\n'
             '  "face_box": [100, 250, 850, 750],\n'
-            '  "overall_condition": "Mild Acne & Oily T-Zone",\n'
-            '  "detected_conditions": [{"name": "Active Acne", "severity": "mild", "location": "forehead"}, {"name": "Oily Shine", "severity": "moderate", "location": "T-zone"}],\n'
-            '  "ai_scores": {"oiliness": 45, "dryness": 15, "acne": 25, "pigmentation": 10, "redness": 12, "texture": 20},\n'
-            '  "clinical_summary": "Mild acne with a few active pimples on the forehead. Recommend gentle salicylic acid cleanser."\n'
+            '  "overall_condition": "Clear Healthy Skin",\n'
+            '  "detected_conditions": [],\n'
+            '  "ai_scores": {"oiliness": 15, "dryness": 10, "acne": 0, "pigmentation": 10, "redness": 5, "texture": 10},\n'
+            '  "clinical_summary": "Overall balanced and healthy skin with intact epidermal barrier."\n'
             "}"
         )
 
@@ -147,9 +142,9 @@ def analyze_with_gemini_vision(image_path):
                         pass
                 raise
 
-        # 1. Primary: OpenAI Vision (gpt-4o with cheaper gpt-4o-mini fallback)
+        # 1. Primary: OpenAI Vision (gpt-4o-mini first for blazing sub-1.5s inference, gpt-4o fallback)
         if openai_key:
-            for oa_model in ["gpt-4o", "gpt-4o-mini"]:
+            for oa_model in ["gpt-4o-mini", "gpt-4o"]:
                 try:
                     payload = {
                         "model": oa_model,
@@ -162,15 +157,15 @@ def analyze_with_gemini_vision(image_path):
                                         "type": "image_url",
                                         "image_url": {
                                             "url": f"data:image/jpeg;base64,{base64_data}",
-                                            "detail": "high"
+                                            "detail": "low"
                                         }
                                     }
                                 ]
                             }
                         ],
                         "response_format": {"type": "json_object"},
-                        "max_tokens": 500,
-                        "temperature": 0.1
+                        "max_tokens": 400,
+                        "temperature": 0.0
                     }
                     req = urllib.request.Request(
                         "https://api.openai.com/v1/chat/completions",
@@ -180,7 +175,7 @@ def analyze_with_gemini_vision(image_path):
                             "Authorization": f"Bearer {openai_key}"
                         }
                     )
-                    with urllib.request.urlopen(req, timeout=12) as response:
+                    with urllib.request.urlopen(req, timeout=15) as response:
                         resp_body = json.loads(response.read().decode("utf-8"))
                         candidate_text = resp_body["choices"][0]["message"]["content"]
                         ai_data = _parse_ai_json(candidate_text)
@@ -508,7 +503,7 @@ def analyze_skin_image(image_path, output_dir=None):
     total_img_pixels = max(1, h_img * w_img)
     skin_ratio_full = float(skin_pixels_total) / float(total_img_pixels)
 
-    if face_box is None and skin_ratio_full >= 0.08:
+    if face_box is None and skin_ratio_full >= 0.05:
         try:
             upper_mask = full_skin_mask.copy()
             contours, _ = cv2.findContours(upper_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -516,17 +511,17 @@ def analyze_skin_image(image_path, output_dir=None):
             valid_candidates = []
             for c in contours:
                 area = cv2.contourArea(c)
-                if area > (h_img * w_img * 0.04):
+                if area > (h_img * w_img * 0.03):
                     bx, by, bw, bh = cv2.boundingRect(c)
                     aspect = bh / max(1, bw)
-                    if 0.6 <= aspect <= 2.2:
+                    if 0.4 <= aspect <= 3.0:
                         valid_candidates.append((bx, by, bw, bh, area))
             if valid_candidates:
                 valid_candidates.sort(key=lambda x: x[4], reverse=True)
                 best_bx, best_by, best_bw, best_bh, _ = valid_candidates[0]
-                if best_bh > best_bw * 1.30:
-                    best_bh = int(best_bw * 1.30)
-                face_box = (best_bx, best_by, best_bw, min(h_img - best_by, best_bh))
+                # If contour is elongated because of chest/torso, isolate upper head portion
+                target_head_h = min(best_bh, int(best_bw * 1.25))
+                face_box = (best_bx, best_by, best_bw, min(h_img - best_by, target_head_h))
         except Exception as ex:
             print(f"Skin contour localization note: {ex}")
 
@@ -726,56 +721,60 @@ def analyze_skin_image(image_path, output_dir=None):
         skin_type = "Normal"
 
     # =====================================================
-    # 10. CALIBRATED CLINICAL BIOMETRIC HEALTH SCORING
+    # 10. STABILIZED CLINICAL BIOMETRIC HEALTH SCORING
     # =====================================================
-    # Blend CV pixel metrics with AI Vision scores for accurate clinical grading.
-    # When AI scores are available from GPT-4o, use a weighted blend (60% AI, 40% CV).
-    # This ensures acne, pimples, scars, and visible conditions are reflected in the score.
-
+    # Primary foundation: deterministic OpenCV pixel measurements (75% weight)
+    # Augmented with clinical AI grading (25% weight) for balanced stability.
     if ai_scores:
-        # AI-graded scores (0-100 scale, higher = worse condition)
         ai_oil = float(ai_scores.get("oiliness", oiliness_score))
         ai_dry = float(ai_scores.get("dryness", dryness_score))
-        ai_acne = float(ai_scores.get("acne", 0))
-        ai_pig = float(ai_scores.get("pigmentation", pigmentation_score))
         ai_red = float(ai_scores.get("redness", redness_score))
+        ai_pig = float(ai_scores.get("pigmentation", pigmentation_score))
         ai_tex = float(ai_scores.get("texture", texture_score))
 
-        # Blend: 60% AI assessment, 40% CV pixel measurement
-        blended_oil = ai_oil * 0.6 + oiliness_score * 0.4
-        blended_dry = ai_dry * 0.6 + dryness_score * 0.4
-        blended_red = ai_red * 0.6 + redness_score * 0.4
-        blended_pig = ai_pig * 0.6 + pigmentation_score * 0.4
-        blended_tex = ai_tex * 0.6 + texture_score * 0.4
+        # Blend: 75% CV pixel measurement, 25% AI assessment for high scan-to-scan consistency
+        blended_oil = oiliness_score * 0.75 + ai_oil * 0.25
+        blended_dry = dryness_score * 0.75 + ai_dry * 0.25
+        blended_red = redness_score * 0.75 + ai_red * 0.25
+        blended_pig = pigmentation_score * 0.75 + ai_pig * 0.25
+        blended_tex = texture_score * 0.75 + ai_tex * 0.25
 
-        # Update displayed scores with blended values for accuracy
         oiliness_score = round(blended_oil, 2)
         dryness_score = round(blended_dry, 2)
         redness_score = round(blended_red, 2)
         pigmentation_score = round(blended_pig, 2)
         texture_score = round(blended_tex, 2)
 
-        # Recalculate levels based on blended scores
-        oiliness_level = "High" if oiliness_score >= 55.0 else ("Moderate" if oiliness_score >= 25.0 else "Low")
-        dryness_level = "High" if dryness_score >= 50.0 else ("Moderate" if dryness_score >= 25.0 else "Low")
-        redness_level = "High" if redness_score >= 45.0 else ("Moderate" if redness_score >= 20.0 else "Low")
-        pigmentation_level = "High" if pigmentation_score >= 48.0 else ("Moderate" if pigmentation_score >= 22.0 else "Low")
-        texture_level = "High Detail" if texture_score >= 50.0 else ("Medium Detail" if texture_score >= 20.0 else "Smooth")
+    # Recalculate levels based on blended scores
+    oiliness_level = "High" if oiliness_score >= 50.0 else ("Moderate" if oiliness_score >= 22.0 else "Low")
+    dryness_level = "High" if dryness_score >= 48.0 else ("Moderate" if dryness_score >= 22.0 else "Low")
+    redness_level = "High" if redness_score >= 40.0 else ("Moderate" if redness_score >= 18.0 else "Low")
+    pigmentation_level = "High" if pigmentation_score >= 45.0 else ("Moderate" if pigmentation_score >= 20.0 else "Low")
+    texture_level = "High Detail" if texture_score >= 45.0 else ("Medium Detail" if texture_score >= 18.0 else "Smooth")
 
-        # Acne/condition severity deduction (from AI detection)
-        acne_deduction = ai_acne * 0.25
-    else:
-        acne_deduction = 0.0
+    # Deductions based on specific clinically detected conditions (discrete and repeatable)
+    condition_deduction = 0.0
+    for cond in detected_conditions:
+        sev = cond.get("severity", "mild").lower() if isinstance(cond, dict) else "mild"
+        cname = cond.get("name", "").lower() if isinstance(cond, dict) else str(cond).lower()
+        if any(k in cname for k in ["acne", "pimple", "cystic"]):
+            penalty = 3.5 if sev == "severe" else (2.0 if sev == "moderate" else 1.2)
+        elif any(k in cname for k in ["scar", "pigment", "dark spot"]):
+            penalty = 2.5 if sev == "severe" else (1.5 if sev == "moderate" else 0.8)
+        else:
+            penalty = 1.8 if sev == "severe" else (1.0 if sev == "moderate" else 0.5)
+        condition_deduction += penalty
+    condition_deduction = min(12.0, condition_deduction)
 
-    # Continuous proportional deductions from a realistic 88% healthy baseline
-    oil_deduction = oiliness_score * 0.10
-    dry_deduction = dryness_score * 0.08
-    red_deduction = redness_score * 0.12
-    pig_deduction = pigmentation_score * 0.10
-    tex_deduction = texture_score * 0.08
+    # Biometric proportional deductions from a realistic clinical 88% baseline
+    oil_ded = max(0.0, (oiliness_score - 15.0) * 0.08)
+    dry_ded = max(0.0, (dryness_score - 20.0) * 0.06)
+    red_ded = max(0.0, (redness_score - 10.0) * 0.08)
+    pig_ded = max(0.0, (pigmentation_score - 12.0) * 0.08)
+    tex_ded = max(0.0, (texture_score - 12.0) * 0.06)
 
-    total_deductions = oil_deduction + dry_deduction + red_deduction + pig_deduction + tex_deduction + acne_deduction
-    overall_score = float(max(35.0, min(92.0, round(88.0 - total_deductions, 1))))
+    total_deductions = oil_ded + dry_ded + red_ded + pig_ded + tex_ded + condition_deduction
+    overall_score = float(max(40.0, min(90.0, round(88.0 - total_deductions, 1))))
 
     # Clinical condition assignment
     if clinical_condition and len(clinical_condition.strip()) > 3:

@@ -674,9 +674,9 @@ def get_ai_recommendations(
     ai_data = None
     used_model_name = ""
 
-    # 1. Primary: OpenAI (gpt-4o with cheaper gpt-4o-mini fallback)
+    # 1. Primary: OpenAI (gpt-4o-mini first for blazing sub-1.5s generation, gpt-4o fallback)
     if openai_key:
-        for oa_model in ["gpt-4o", "gpt-4o-mini"]:
+        for oa_model in ["gpt-4o-mini", "gpt-4o"]:
             try:
                 payload = {
                     "model": oa_model,
@@ -685,8 +685,8 @@ def get_ai_recommendations(
                         {"role": "user", "content": prompt}
                     ],
                     "response_format": {"type": "json_object"},
-                    "max_tokens": 950,
-                    "temperature": 0.2
+                    "max_tokens": 650,
+                    "temperature": 0.1
                 }
                 req = urllib.request.Request(
                     "https://api.openai.com/v1/chat/completions",
@@ -696,7 +696,7 @@ def get_ai_recommendations(
                         "Authorization": f"Bearer {openai_key}"
                     }
                 )
-                with urllib.request.urlopen(req, timeout=12) as response:
+                with urllib.request.urlopen(req, timeout=15) as response:
                     resp_body = json.loads(response.read().decode("utf-8"))
                     candidate_text = resp_body["choices"][0]["message"]["content"]
                     if candidate_text:
