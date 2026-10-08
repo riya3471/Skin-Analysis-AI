@@ -542,6 +542,15 @@ def save_skin_scan(user_id, scan_data, image_paths=None):
     for idx, life in enumerate(scan_data.get("lifestyle_suggestions", []), 1):
         recs_to_insert.append((scan_id, "lifestyle", life, None, idx))
 
+    for idx, cond in enumerate(scan_data.get("detected_conditions", []), 1):
+        if isinstance(cond, dict):
+            c_name = cond.get("name", "")
+            c_meta = f"{cond.get('severity', 'mild')}|{cond.get('location', 'face')}"
+            recs_to_insert.append((scan_id, "possible_cause", f"[Condition] {c_name}", c_meta, idx))
+
+    if scan_data.get("clinical_summary"):
+        recs_to_insert.append((scan_id, "recommendation", f"[ClinicalSummary] {scan_data['clinical_summary']}", None, 99))
+
     if recs_to_insert:
         execute_many(
             "INSERT INTO scan_recommendations (scan_id, category, text, reason, step_order) VALUES (?, ?, ?, ?, ?)",
@@ -594,13 +603,18 @@ def get_scan_by_id(scan_id, user_id=None):
     night_routine = []
     possible_causes = []
     lifestyle_suggestions = []
+    detected_conditions = []
+    clinical_summary = ""
 
     for row in rec_rows:
         cat = row["category"]
         txt = row["text"]
         reason = row["reason"]
         if cat == "recommendation":
-            recommendations.append(txt)
+            if txt.startswith("[ClinicalSummary] "):
+                clinical_summary = txt[len("[ClinicalSummary] "):]
+            else:
+                recommendations.append(txt)
         elif cat == "ingredient":
             recommended_ingredients.append({"ingredient": txt, "reason": reason or ""})
         elif cat == "avoid":
@@ -610,7 +624,14 @@ def get_scan_by_id(scan_id, user_id=None):
         elif cat == "night_routine":
             night_routine.append(txt)
         elif cat == "possible_cause":
-            possible_causes.append(txt)
+            if txt.startswith("[Condition] "):
+                c_name = txt[len("[Condition] "):]
+                parts = (reason or "").split("|") if reason else []
+                sev = parts[0] if len(parts) > 0 else "mild"
+                loc = parts[1] if len(parts) > 1 else "face"
+                detected_conditions.append({"name": c_name, "severity": sev, "location": loc})
+            else:
+                possible_causes.append(txt)
         elif cat == "lifestyle":
             lifestyle_suggestions.append(txt)
 
@@ -621,6 +642,8 @@ def get_scan_by_id(scan_id, user_id=None):
     scan["night_routine"] = night_routine
     scan["possible_causes"] = possible_causes
     scan["lifestyle_suggestions"] = lifestyle_suggestions
+    scan["detected_conditions"] = detected_conditions
+    scan["clinical_summary"] = clinical_summary
 
     try:
         from models.recommendations import get_product_recommendations

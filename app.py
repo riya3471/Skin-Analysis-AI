@@ -1069,6 +1069,12 @@ def result():
 
     if result_data is None:
         result_data = session.get("analysis_result")
+    elif session.get("analysis_result"):
+        sess_res = session.get("analysis_result")
+        if not result_data.get("detected_conditions") and sess_res.get("detected_conditions"):
+            result_data["detected_conditions"] = sess_res.get("detected_conditions")
+        if not result_data.get("clinical_summary") and sess_res.get("clinical_summary"):
+            result_data["clinical_summary"] = sess_res.get("clinical_summary")
 
     if result_data is None:
         user_id = session.get("user_id")

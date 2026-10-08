@@ -575,10 +575,11 @@ def get_ai_recommendations(
     dryness_level,
     texture_level,
     redness_level,
-    pigmentation_level
+    pigmentation_level,
+    detected_conditions=None
 ):
     """
-    Calls Gemini API with the user's biomarker profile to dynamically generate
+    Calls Gemini / OpenAI API with the user's biomarker profile to dynamically generate
     clinically formulated, highly personalized active ingredients and product recommendations.
     Enforces hybrid image lookup and Nepal-accessible buy links.
     """
@@ -592,6 +593,17 @@ def get_ai_recommendations(
     if not openai_key and not nvidia_key and not openrouter_key and not api_key:
         return None
 
+    conditions_desc = ""
+    if detected_conditions and isinstance(detected_conditions, list):
+        c_lines = []
+        for c in detected_conditions:
+            if isinstance(c, dict):
+                c_lines.append(f"{c.get('name', 'Condition')} ({c.get('severity', 'mild')} on {c.get('location', 'face')})")
+            elif isinstance(c, str):
+                c_lines.append(c)
+        if c_lines:
+            conditions_desc = f"- Clinically Identified Skin Concerns: {', '.join(c_lines)}\n"
+
     prompt = (
         f"You are an expert cosmetic dermatologist and cosmetic chemist.\n"
         f"Analyze this patient's biometric facial scan biomarkers:\n"
@@ -600,9 +612,10 @@ def get_ai_recommendations(
         f"- Epidermal Hydration / Dryness Level: {dryness_level}\n"
         f"- Surface Texture / Pores: {texture_level}\n"
         f"- Erythema / Redness Level: {redness_level}\n"
-        f"- Hyperpigmentation / Tone Unevenness: {pigmentation_level}\n\n"
+        f"- Hyperpigmentation / Tone Unevenness: {pigmentation_level}\n"
+        f"{conditions_desc}\n"
         f"Task:\n"
-        f"1. Prescribe 4 to 6 tailored active ingredients with clear clinical justifications.\n"
+        f"1. Prescribe 4 to 6 tailored active ingredients with clear clinical justifications directly addressing their detected concerns (such as acne, pimples, scars, dark spots, redness) while balancing their skin barrier.\n"
         f"2. Recommend 4 to 8 real, widely accessible, genuine commercial skincare products that provide these active ingredients. "
         f"Prioritize reputable global and South Asian / Nepal-accessible brands (e.g., CeraVe, The Ordinary, COSRX, Minimalist, La Roche-Posay, Paula's Choice, Beauty of Joseon, Cetaphil, Derma Co, Sebamed, Bioderma).\n"
         f"3. Provide morning and night skincare routine steps (with active layering precautions).\n"
@@ -1397,11 +1410,12 @@ def get_recommendations(
     dryness_level,
     texture_level,
     redness_level,
-    pigmentation_level
+    pigmentation_level,
+    detected_conditions=None
 ):
 
     # -------------------------------------------------------------
-    # 1. HYBRID AI ENGINE: Try Gemini Generative AI First
+    # 1. HYBRID AI ENGINE: Try Multimodal AI Skincare Formulation
     # -------------------------------------------------------------
     try:
         ai_plan = get_ai_recommendations(
@@ -1410,7 +1424,8 @@ def get_recommendations(
             dryness_level,
             texture_level,
             redness_level,
-            pigmentation_level
+            pigmentation_level,
+            detected_conditions=detected_conditions
         )
         if ai_plan and ai_plan.get("recommended_ingredients") and ai_plan.get("product_recommendations"):
             return ai_plan
