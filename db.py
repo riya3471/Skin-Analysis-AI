@@ -2,6 +2,9 @@ import os
 import sqlite3
 from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
+
+load_dotenv()
 
 try:
     import psycopg2
@@ -58,11 +61,12 @@ def create_raw_connection():
             _postgres_available = False
         else:
             url = get_db_url()
-            candidate_urls = [url]
-            if ":6543/" in url:
-                candidate_urls.append(url.replace(":6543/", ":5432/"))
-            elif ":5432/" in url and "pooler.supabase.com" in url:
-                candidate_urls.append(url.replace(":5432/", ":6543/"))
+            if ":5432/" in url and "pooler.supabase.com" in url:
+                candidate_urls = [url.replace(":5432/", ":6543/"), url]
+            elif ":6543/" in url:
+                candidate_urls = [url, url.replace(":6543/", ":5432/")]
+            else:
+                candidate_urls = [url]
 
             last_err = None
             for cand_url in candidate_urls:
@@ -738,7 +742,7 @@ def get_user_dashboard_stats(user_id):
 def get_user_notifications(user_id, limit=30):
     rows = execute_query(
         """
-        SELECT id, user_id, icon, title, message, is_read, created_at
+        SELECT id, user_id, icon, title, message, is_read, created_at, CURRENT_TIMESTAMP AS db_now
         FROM notifications
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -749,8 +753,19 @@ def get_user_notifications(user_id, limit=30):
     )
 
     results = []
-    now_utc = datetime.now(timezone.utc)
+    fallback_now = datetime.now(timezone.utc)
     for d in rows:
+        db_now_val = d.pop("db_now", None)
+        if isinstance(db_now_val, datetime):
+            now_utc = db_now_val if db_now_val.tzinfo else db_now_val.replace(tzinfo=timezone.utc)
+        elif db_now_val:
+            try:
+                now_utc = datetime.strptime(str(db_now_val).split(".")[0], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            except Exception:
+                now_utc = fallback_now
+        else:
+            now_utc = fallback_now
+
         val = d.get("created_at")
         if isinstance(val, datetime):
             dt_utc = val if val.tzinfo else val.replace(tzinfo=timezone.utc)
@@ -760,15 +775,16 @@ def get_user_notifications(user_id, limit=30):
             except Exception:
                 dt_utc = now_utc
 
-        diff = now_utc - dt_utc
-        if diff.days == 0:
-            if diff.seconds < 60:
-                d["time_ago"] = "Just now"
-            elif diff.seconds < 3600:
-                d["time_ago"] = f"{diff.seconds // 60} mins ago"
-            else:
-                d["time_ago"] = f"{diff.seconds // 3600} hours ago"
-        elif diff.days == 1:
+        diff_seconds = max(0, int((now_utc - dt_utc).total_seconds()))
+        if diff_seconds < 60:
+            d["time_ago"] = "Just now"
+        elif diff_seconds < 3600:
+            mins = diff_seconds // 60
+            d["time_ago"] = f"{mins} min ago" if mins == 1 else f"{mins} mins ago"
+        elif diff_seconds < 86400:
+            hours = diff_seconds // 3600
+            d["time_ago"] = f"{hours} hour ago" if hours == 1 else f"{hours} hours ago"
+        elif diff_seconds < 172800:
             d["time_ago"] = "Yesterday"
         else:
             dt_local = dt_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))

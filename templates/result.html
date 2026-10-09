@@ -66,10 +66,8 @@
                 <!-- Clinical Synthesis -->
                 <div class="col-lg-4 text-center text-lg-start ps-lg-4">
                     <h5 class="fw-bold mb-2" style="color: var(--green-dark);"><i class="fa-solid fa-clipboard-check me-2"></i> Clinical Synthesis</h5>
-                    <p class="small text-muted mb-2" style="line-height: 1.7;">
-                        {% if result.clinical_summary %}
-                        {{ result.clinical_summary }}
-                        {% elif result.skin_type == 'Oily' %}
+                    <p class="small text-muted mb-3" style="line-height: 1.7;">
+                        {% if result.skin_type == 'Oily' %}
                         Elevated sebum reflection observed across the T-zone and forehead. Focus on gentle Salicylic Acid or Niacinamide balancing solutions.
                         {% elif result.skin_type == 'Dry' %}
                         Reduced lipid reflectivity and surface tightness identified. Prioritize multi-weight Hyaluronic Acid and Ceramide barrier protection.
@@ -79,101 +77,11 @@
                         Balanced lipid-hydration equilibrium detected. Maintain consistent antioxidant protection and daily SPF 50+.
                         {% endif %}
                     </p>
-                    {% if result.detected_conditions %}
-                    <div class="d-flex flex-wrap gap-1 mb-2">
-                        {% for cond in result.detected_conditions %}
-                        <span class="badge {% if cond.severity == 'severe' %}bg-danger-subtle text-danger border border-danger-subtle{% elif cond.severity == 'moderate' %}bg-warning-subtle text-warning border border-warning-subtle{% else %}bg-info-subtle text-info border border-info-subtle{% endif %} px-2 py-1 small rounded-pill">
-                            <i class="fa-solid fa-circle-exclamation me-1"></i>{{ cond.name }} ({{ cond.severity|capitalize }}{% if cond.location %}, {{ cond.location }}{% endif %})
-                        </span>
-                        {% endfor %}
-                    </div>
-                    {% else %}
                     <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill small">
                         <i class="fa-solid fa-shield-halved me-1"></i> Barrier Integrity Verified
                     </span>
-                    {% endif %}
                 </div>
             </div>
-        </div>
-
-        <!-- IDENTIFIED FACIAL CONCERNS & CLINICAL SOLUTIONS -->
-        <div class="card border-0 shadow-sm mb-5 p-4 p-md-4" style="border-radius: 20px; background: #ffffff; border: 1px solid var(--border);">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                <h4 class="fw-bold mb-0" style="color: var(--green-dark);">
-                    <i class="fa-solid fa-microscope text-primary me-2"></i> Facial Diagnosis & Targeted Solutions
-                </h4>
-                {% if result.detected_conditions %}
-                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill small">
-                    <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ result.detected_conditions|length }} Concern(s) Identified
-                </span>
-                {% else %}
-                <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill small">
-                    <i class="fa-solid fa-circle-check me-1"></i> Clear & Balanced
-                </span>
-                {% endif %}
-            </div>
-
-            {% if result.clinical_summary %}
-            <div class="alert alert-light border p-3 rounded-3 mb-4" style="background: rgba(112, 123, 87, 0.05);">
-                <div class="d-flex align-items-start gap-2">
-                    <i class="fa-solid fa-user-doctor text-success mt-1"></i>
-                    <div>
-                        <strong class="d-block text-dark small fw-bold mb-1">Dermatological Assessment:</strong>
-                        <p class="mb-0 text-muted small" style="line-height: 1.6;">{{ result.clinical_summary }}</p>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if result.detected_conditions %}
-            <div class="row g-3">
-                {% for cond in result.detected_conditions %}
-                <div class="col-md-6 col-lg-4">
-                    <div class="p-3 rounded-4 h-100 border" style="background: #fbfbfd;">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="fw-bold mb-0 text-dark">
-                                <i class="fa-solid fa-circle-dot text-danger me-1"></i> {{ cond.name }}
-                            </h6>
-                            <span class="badge {% if cond.severity == 'severe' %}bg-danger text-white{% elif cond.severity == 'moderate' %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %} rounded-pill small">
-                                {{ cond.severity|capitalize }}
-                            </span>
-                        </div>
-                        <p class="small text-muted mb-2">
-                            <i class="fa-solid fa-location-dot me-1 text-primary"></i> <strong>Location:</strong> {{ cond.location|capitalize if cond.location else 'Facial area' }}
-                        </p>
-                        <div class="p-2 rounded-3 bg-white border small">
-                            <strong class="text-success d-block mb-1"><i class="fa-solid fa-lightbulb me-1"></i> Targeted Solution:</strong>
-                            <span class="text-muted">
-                                {% if 'acne' in cond.name|lower or 'pimple' in cond.name|lower %}
-                                Apply Salicylic Acid (2%) cleanser or Benzoyl Peroxide spot gel. Avoid picking to prevent scarring.
-                                {% elif 'scar' in cond.name|lower %}
-                                Use Niacinamide (5-10%) and Azelaic Acid to fade post-inflammatory marks and accelerate tissue healing.
-                                {% elif 'spot' in cond.name|lower or 'pigment' in cond.name|lower %}
-                                Apply Vitamin C serum each morning and strict SPF 50+ sunscreen to prevent UV darkening.
-                                {% elif 'pore' in cond.name|lower or 'blackhead' in cond.name|lower %}
-                                Incorporate gentle BHA salicylic exfoliation 2-3x weekly to decongest pores.
-                                {% elif 'red' in cond.name|lower or 'rosacea' in cond.name|lower %}
-                                Soothe with Centella Asiatica (Cica) and Ceramides; avoid hot water and harsh manual scrubs.
-                                {% elif 'oil' in cond.name|lower or 'shine' in cond.name|lower %}
-                                Balance with oil-free niacinamide gel moisturizer and gentle foaming cleanser.
-                                {% elif 'dry' in cond.name|lower %}
-                                Deeply hydrate with multi-weight Hyaluronic Acid followed immediately by Ceramide barrier cream.
-                                {% else %}
-                                Apply targeted antioxidant serum and non-comedogenic barrier moisturizer daily.
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="p-3 rounded-4 bg-light text-center border">
-                <i class="fa-solid fa-face-smile text-success fa-2x mb-2"></i>
-                <h6 class="fw-bold mb-1">No Active Pathologies Detected</h6>
-                <p class="small text-muted mb-0">Your skin shows no significant active acne, pimples, or deep scarring. Maintain barrier health with gentle cleansing and daily broad-spectrum SPF 50+.</p>
-            </div>
-            {% endif %}
         </div>
 
         <!-- 6 BIOMARKER METRICS GRID -->
