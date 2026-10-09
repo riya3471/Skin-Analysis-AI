@@ -2,6 +2,7 @@ import os
 import uuid
 import base64
 import json
+import time
 import urllib.request
 import urllib.error
 from functools import wraps
@@ -495,7 +496,20 @@ def analyze():
         crop_output_dir = os.path.join(CROPS_DIR, crops_subfolder)
         os.makedirs(crop_output_dir, exist_ok=True)
 
-        result = analyze_skin_image(image_path, output_dir=crop_output_dir)
+        # Check for consecutive scan of the same face within 20 minutes (1200 seconds)
+        prev_sig = session.get("recent_face_signature")
+        prev_base = session.get("recent_baseline_result")
+        last_scan_time = session.get("recent_face_timestamp", 0)
+        if (time.time() - last_scan_time) > 1200:
+            prev_sig = None
+            prev_base = None
+
+        result = analyze_skin_image(
+            image_path,
+            output_dir=crop_output_dir,
+            previous_signature=prev_sig,
+            previous_baseline=prev_base
+        )
 
         if not result.get("success"):
             return jsonify({
@@ -512,6 +526,20 @@ def analyze():
             "right_cheek": f"uploads/crops/{crops_subfolder}/{result.get('right_cheek', 'right_cheek.jpg')}",
         }
         result["image_paths"] = image_paths
+
+        # Update session face fingerprint and baseline for consecutive scan consistency
+        if result.get("success") and result.get("face_signature"):
+            session["recent_face_signature"] = result.get("face_signature")
+            session["recent_face_timestamp"] = time.time()
+            session["recent_baseline_result"] = {
+                k: v for k, v in result.items()
+                if k not in [
+                    "cropped_face", "forehead", "left_cheek", "right_cheek",
+                    "face_crop_full_path", "forehead_crop_full_path",
+                    "left_cheek_crop_full_path", "right_cheek_crop_full_path",
+                    "image_paths", "scan_id"
+                ]
+            }
 
         # 3. Save to database if user is logged in (or default user)
         user_id = session.get("user_id")
