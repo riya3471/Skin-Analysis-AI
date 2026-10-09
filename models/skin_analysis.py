@@ -106,7 +106,7 @@ def analyze_with_gemini_vision(image_path):
             "   - name: condition name\n"
             "   - severity: 'mild' | 'moderate' | 'severe'\n"
             "   - location: 'forehead' | 'cheeks' | 'chin' | 'nose' | 'T-zone'\n"
-            "   If skin is clear with no notable problems, return an empty array [].\n"
+            "   If skin is fair, smooth, or clear with no active blemishes, return an empty array []. Only identify conditions if distinct, unambiguous lesions or breakouts are visually evident. Do NOT identify acne for natural smooth skin texture.\n"
             "4. ai_scores: Estimate biomarker severity from 0 to 100 (0=none/clear, 100=extreme):\n"
             "   - oiliness, dryness, acne, pigmentation, redness, texture\n"
             "5. clinical_summary: 1-2 sentence dermatological assessment and brief advice.\n\n"
@@ -870,7 +870,7 @@ def analyze_skin_image(image_path, output_dir=None, previous_signature=None, pre
         condition_deduction += penalty
     condition_deduction = min(12.0, condition_deduction)
 
-    # Biometric proportional deductions from a realistic clinical 88% baseline
+    # Biometric proportional deductions
     oil_ded = max(0.0, (oiliness_score - 15.0) * 0.08)
     dry_ded = max(0.0, (dryness_score - 20.0) * 0.06)
     red_ded = max(0.0, (redness_score - 10.0) * 0.08)
@@ -878,11 +878,33 @@ def analyze_skin_image(image_path, output_dir=None, previous_signature=None, pre
     tex_ded = max(0.0, (texture_score - 12.0) * 0.06)
 
     total_deductions = oil_ded + dry_ded + red_ded + pig_ded + tex_ded + condition_deduction
-    overall_score = float(max(40.0, min(90.0, round(88.0 - total_deductions, 1))))
+
+    # Evaluation of Fair & Smooth Skin:
+    # 1. Smooth surface texture: Low micro-relief and fine pore structure
+    smoothness_qualifies = (texture_level == "Smooth") or (texture_score <= 28.0)
+    # 2. Fair / uniform clarity: Low hyperpigmentation and low erythema/redness
+    clarity_qualifies = (pigmentation_score <= 32.0 or pigmentation_level == "Low") and (redness_score <= 32.0 or redness_level == "Low")
+    # 3. Absence of severe inflammatory blemishes
+    no_severe_pathology = (condition_deduction <= 3.0) and (oiliness_score <= 55.0)
+
+    is_fair_and_smooth = smoothness_qualifies and clarity_qualifies and no_severe_pathology
+
+    if is_fair_and_smooth:
+        # Fair and smooth skin is calibrated to optimal health tier above 90% (91.0% - 97.5%)
+        fair_smooth_baseline = 96.5
+        calibrated_score = fair_smooth_baseline - (total_deductions * 0.6)
+        overall_score = float(max(91.0, min(97.5, round(calibrated_score, 1))))
+    else:
+        # Standard clinical deduction scale for blemished, rough, or uneven skin
+        standard_baseline = 89.0
+        calibrated_score = standard_baseline - total_deductions
+        overall_score = float(max(40.0, min(89.5, round(calibrated_score, 1))))
 
     # Clinical condition assignment
     if clinical_condition and len(clinical_condition.strip()) > 3:
         overall_condition = clinical_condition.strip()
+    elif is_fair_and_smooth:
+        overall_condition = "Healthy, Smooth & Radiant"
     elif redness_level == "High":
         overall_condition = "Sensitive & Redness Prone"
     elif oiliness_level == "High" and texture_level == "High Detail":
